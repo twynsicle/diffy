@@ -135,6 +135,90 @@ store
     └── error?: string
 ```
 
+## Non-Goals
+
+- Commit creation, push/pull, branch management, history graph, blame
+- Partial staging (hunks/lines) — Diffy stages/unstages entire files only
+- Merge conflict resolution UI
+- Repo-wide search
+
+## UX Behavior
+
+### Window Layout
+
+- **Top bar**: Repo selector (folder picker), repo name + path, refresh button
+- **Main area**: Two columns — Monaco Diff Editor (left), file lists pane (right)
+- **Right pane**: Two stacked sections — Staged (top), Unstaged (bottom)
+- Resizable pane divider between diff view and file lists
+
+### File List Interactions
+
+- **Click row**: Selects file and loads diff
+- **Hover**: Shows primary action button (Stage for unstaged rows, Unstage for staged rows)
+- **Right-click**: Opens context menu with Discard Changes / Delete File
+- Status badges: A (added), M (modified), D (deleted), R (renamed), ? (untracked)
+
+### Context Menu Enablement
+
+| Action | Enabled When |
+|---|---|
+| Discard Changes | Tracked files with worktree modifications, or untracked files (acts as delete) |
+| Delete File | Any file entry (tracked or untracked) |
+
+- Delete always requires a confirmation modal
+- Discard on untracked files also shows confirmation ("will delete the file")
+
+### Selection Persistence
+
+- After stage/unstage: keep file selected if it still exists (may move sections)
+- If file no longer appears in either list: clear selection
+- After stage all / unstage all: clear selection
+
+### Diff View
+
+- Monaco Diff Editor fills the main area
+- Toolbar above diff: Wrap Lines toggle (session-persisted via Redux)
+- Clicking in Unstaged list shows Index vs Worktree diff
+- Clicking in Staged list shows HEAD vs Index diff
+- Binary files show a placeholder message instead of the editor
+- No file selected shows "Select a file to view diff"
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+O` | Open folder |
+| `Cmd+R` | Refresh status |
+
+### Error Handling UX
+
+- Toast notifications appear bottom-right
+- Auto-dismiss after ~5 seconds, manual dismiss with X
+- Stacks multiple toasts
+- Surfaces errors from: git commands, diff fetch, file watcher, repo open
+
+## Performance Strategy
+
+- Debounced status refresh (200-400ms) to avoid flicker from rapid file changes
+- Only compute diff content for the currently selected file (lazy loading)
+- Virtualized file lists with `react-window` for smooth scrolling at 1000+ files
+- Use `spawn` (not `exec`) for unbounded output and no shell injection risk
+- Cancel in-flight diff loads when selection changes to prevent stale diffs
+
+## Packaging & Distribution
+
+- **Tool**: electron-builder
+- **Targets**: macOS DMG + zip
+- **Bundle ID**: `com.diffy.app`
+- **Category**: `public.app-category.developer-tools`
+- **Production hardening**:
+  - Redux DevTools disabled in production
+  - Electron DevTools disabled in production
+  - Content-Security-Policy headers set
+  - No source maps in distributed app
+- **Code signing**: Not implemented (unsigned apps show Gatekeeper warning; right-click → Open to bypass)
+- **Auto-update**: Not implemented (documented as future enhancement)
+
 ## Key Design Decisions
 
 ### Why spawn over exec?

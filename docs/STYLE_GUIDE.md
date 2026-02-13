@@ -149,6 +149,22 @@ Define all colors, spacing, and typography as CSS custom properties in a global 
 
 Components reference these variables — never hardcode colors.
 
+### Status Badge Colors
+
+File status badges use theme variables for consistent color coding:
+
+| Status | Badge | Variable | Color |
+|---|---|---|---|
+| A (added) | Green | `--success` | `#a6e3a1` |
+| M (modified) | Yellow | `--warning` | `#f9e2af` |
+| D (deleted) | Red | `--danger` | `#f38ba8` |
+| R (renamed) | Blue | `--accent` | `#89b4fa` |
+| ? (untracked) | Gray | `--text-muted` | `#6c7086` |
+
+### Design Reference
+
+The color palette draws from Catppuccin Mocha tones — dark blue-gray backgrounds with cool-toned text and vibrant accent colors. The overall aesthetic targets a GitKraken-like dark, compact, crisp appearance.
+
 ## Error Handling
 
 ### Main Process (git commands)
