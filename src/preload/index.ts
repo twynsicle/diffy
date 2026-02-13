@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type { DiffyApi } from '@shared/ipc'
-import type { DiffRequest, NarrativeReview, PrData, PrReference } from '@shared/types'
+import type { AiProvider, DiffRequest, NarrativeReview, PrData, PrReference } from '@shared/types'
 
 const api: DiffyApi = {
   getLastRepo: () => ipcRenderer.invoke(IPC_CHANNELS.REPO_GET_LAST),
@@ -91,6 +91,16 @@ const api: DiffyApi = {
   cancelGeneration: () => ipcRenderer.invoke(IPC_CHANNELS.LLM_CANCEL_GENERATION),
   getLastPrUrl: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_LAST_PR_URL),
   setLastPrUrl: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_LAST_PR_URL, url),
+  getExcludedPatterns: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_EXCLUDED_PATTERNS),
+  setExcludedPatterns: (patterns: string[]) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_EXCLUDED_PATTERNS, patterns),
+  getAiProvider: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_AI_PROVIDER),
+  setAiProvider: (provider: AiProvider) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_AI_PROVIDER, provider),
+  getCliModel: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_CLI_MODEL),
+  setCliModel: (model: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_CLI_MODEL, model),
+  checkClaudeCliInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED),
   onNarrativeTruncationWarning: (callback: () => void) => {
     const listener = (): void => {
       callback()

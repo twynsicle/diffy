@@ -1,4 +1,4 @@
-import type { DiffContent, DiffRequest, NarrativeReview, PrData, PrReference, RepoStatus, Result } from './types'
+import type { AiProvider, DiffContent, DiffRequest, NarrativeReview, PrData, PrReference, RepoStatus, Result } from './types'
 
 export const IPC_CHANNELS = {
   REPO_GET_LAST: 'repo.getLast',
@@ -30,6 +30,13 @@ export const IPC_CHANNELS = {
   LLM_TRUNCATION_WARNING: 'llm.truncationWarning',
   SETTINGS_GET_LAST_PR_URL: 'settings.getLastPrUrl',
   SETTINGS_SET_LAST_PR_URL: 'settings.setLastPrUrl',
+  SETTINGS_GET_EXCLUDED_PATTERNS: 'settings.getExcludedPatterns',
+  SETTINGS_SET_EXCLUDED_PATTERNS: 'settings.setExcludedPatterns',
+  SETTINGS_GET_AI_PROVIDER: 'settings.getAiProvider',
+  SETTINGS_SET_AI_PROVIDER: 'settings.setAiProvider',
+  SETTINGS_GET_CLI_MODEL: 'settings.getCliModel',
+  SETTINGS_SET_CLI_MODEL: 'settings.setCliModel',
+  CLAUDE_CLI_CHECK_INSTALLED: 'claudeCli.checkInstalled',
 } as const
 
 export type RepoOpenResult = {
@@ -67,4 +74,11 @@ export type DiffyApi = {
   getLastPrUrl: () => Promise<string | null>
   setLastPrUrl: (url: string) => Promise<Result<void>>
   onNarrativeTruncationWarning: (callback: () => void) => () => void
+  getExcludedPatterns: () => Promise<Result<string[]>>
+  setExcludedPatterns: (patterns: string[]) => Promise<Result<void>>
+  getAiProvider: () => Promise<Result<AiProvider>>
+  setAiProvider: (provider: AiProvider) => Promise<Result<void>>
+  getCliModel: () => Promise<Result<string>>
+  setCliModel: (model: string) => Promise<Result<void>>
+  checkClaudeCliInstalled: () => Promise<Result<boolean>>
 }

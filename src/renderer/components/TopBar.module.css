@@ -49,7 +49,7 @@
 
 .modeToggle {
   display: flex;
-  gap: 2px;
+  gap: 0;
   align-items: center;
 }
 
@@ -57,12 +57,21 @@
   -webkit-app-region: no-drag;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: var(--font-size-sm);
   padding: 2px var(--spacing-sm);
   transition: background-color 0.15s, color 0.15s;
+}
+
+.modeButton:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  border-right: none;
+}
+
+.modeButton:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .modeButton:hover {
@@ -71,14 +80,23 @@
 }
 
 .modeButtonActive {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-primary);
+  background: var(--accent-selected);
+  border-color: var(--accent-selected);
+  color: #fff;
 }
 
 .modeButtonActive:hover {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-selected);
+  border-color: var(--accent-selected);
+}
+
+.icon {
+  font-size: var(--font-size-base);
+  vertical-align: middle;
+}
+
+.settingsButton {
+  margin-left: var(--spacing-md);
 }
 
 .spinner {

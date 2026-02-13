@@ -1,4 +1,5 @@
 import type { PrData } from '@shared/types'
+import { isExcludedFromAI } from '@shared/ai-file-filter'
 
 const MAX_DIFF_TOKENS = 80_000
 const CHARS_PER_TOKEN = 4
@@ -43,7 +44,18 @@ function truncateDiff(diff: string): { result: string; wasTruncated: boolean } {
   return { result, wasTruncated: true }
 }
 
-export function buildNarrativePrompt(prData: PrData): { system: string; user: string; wasTruncated: boolean } {
+function filterDiffPatches(diff: string, shouldExclude: (filename: string) => boolean): string {
+  const patches = diff.split(/(?=^diff --git )/m)
+  const kept = patches.filter((patch) => {
+    // Extract filename from "diff --git a/path b/path" header
+    const match = patch.match(/^diff --git a\/.+ b\/(.+)/)
+    if (!match) return true
+    return !shouldExclude(match[1])
+  })
+  return kept.join('')
+}
+
+export function buildNarrativePrompt(prData: PrData, userPatterns?: readonly string[]): { system: string; user: string; wasTruncated: boolean } {
   const system = `You are a senior software engineer reviewing a pull request. Your job is to produce a structured narrative review that organizes the PR changes into logical chapters.
 
 Output a JSON object wrapped in <narrative_review> tags. The JSON must conform to this schema:
@@ -54,14 +66,19 @@ Output a JSON object wrapped in <narrative_review> tags. The JSON must conform t
   "chapters": [
     {
       "id": "string — unique slug like 'auth-middleware'",
-      "title": "string — short chapter title",
-      "summary": "string — 1-3 sentence description of what this chapter covers and why",
+      "title": "string — actionable takeaway title (McKinsey-style, a full sentence conveying the key insight, e.g., 'Centralizing auth middleware reduces duplication across 12 route handlers')",
+      "insights": [
+        {
+          "type": "context | rationale | highlight | reference",
+          "text": "string — concise reviewer aid"
+        }
+      ],
       "diffChunks": [
         {
           "filename": "string — path of the file",
           "language": "string — programming language",
           "startLine": number,
-          "content": "string — relevant code snippet"
+          "content": "string — unified diff snippet (use exact diff hunks from the provided diff, preserving +/- prefixes and context lines with a leading space)"
         }
       ]
     }
@@ -72,15 +89,24 @@ Guidelines:
 - Produce 2–12 chapters depending on PR complexity. For small PRs (1–2 files, under 20 lines changed), 2–3 chapters is appropriate.
 - Group related changes together logically (e.g. "API types", "database migration", "UI components").
 - Each chapter should tell a coherent story about one aspect of the change.
-- Include the most important diff chunks in each chapter to illustrate the changes.
-- Keep summaries concise and technical.
+- Chapter titles must be actionable takeaway sentences (McKinsey-style), not short labels. They should convey the key insight of the chapter, e.g., "Extracting shared validation logic into a reusable hook eliminates 200 lines of duplication".
+- Each chapter must have 1–3 insights. Insight types are reviewer aids (not AI opinions):
+  - "context": background info to help the reviewer understand the change
+  - "rationale": why this approach was chosen over alternatives
+  - "highlight": key change the reviewer should focus on
+  - "reference": pointers to related code, docs, or patterns
+- Include the most important diff chunks in each chapter to illustrate the changes. Each chunk's "content" must be an exact subset of the unified diff — keep the +/- prefixes and leading spaces on context lines. Do NOT strip diff markers or output plain code.
 - Output ONLY the <narrative_review> JSON tags — no other text.`
 
-  const fileList = prData.files
+  const shouldExclude = (filename: string): boolean => isExcludedFromAI(filename, userPatterns)
+  const filteredFiles = prData.files.filter((f) => !shouldExclude(f.filename))
+
+  const fileList = filteredFiles
     .map((f) => `  ${f.status.padEnd(10)} +${String(f.additions)}/-${String(f.deletions)}  ${f.filename}`)
     .join('\n')
 
-  const { result: diff, wasTruncated } = truncateDiff(prData.diff)
+  const filteredDiff = filterDiffPatches(prData.diff, shouldExclude)
+  const { result: diff, wasTruncated } = truncateDiff(filteredDiff)
 
   let user = `# Pull Request: ${prData.title}
 
@@ -90,7 +116,7 @@ Guidelines:
 ## Description
 ${prData.body || '(no description)'}
 
-## Files Changed (${String(prData.files.length)})
+## Files Changed (${String(filteredFiles.length)})
 ${fileList}
 
 ## Full Diff

@@ -1,49 +1,13 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-  background: var(--bg-chapter);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  scroll-margin-top: var(--spacing-md);
-  animation: cardFadeIn 0.3s ease-out both;
-}
-
-@keyframes cardFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--bg-primary);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  flex-shrink: 0;
+  gap: var(--spacing-lg);
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: 1.35rem;
   color: var(--text-primary);
   font-weight: 600;
+  line-height: 1.4;
 }

@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
 import type { NarrativeReview, PrData, PrReference } from '@shared/types'
+import { SUMMARY_SECTION_ID } from '@shared/types'
 
 import type { RootState } from '.'
 
@@ -189,5 +190,6 @@ export const selectCancelling = (state: RootState): boolean => state.narrative.c
 export const selectActiveChapterIndex = (state: RootState): number => {
   const { review, activeChapterId } = state.narrative
   if (!review || !activeChapterId) return -1
+  if (activeChapterId === SUMMARY_SECTION_ID) return review.chapters.length
   return review.chapters.findIndex((ch) => ch.id === activeChapterId)
 }

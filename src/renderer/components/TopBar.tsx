@@ -40,9 +40,6 @@ export function TopBar(): ReactElement {
   return (
     <div className={styles.topBar}>
       <div className={styles.trafficLightSpacer} />
-      <div className={styles.repoName} title={repoRoot ?? undefined}>
-        {displayName || 'Diffy'}
-      </div>
       <div className={styles.modeToggle}>
         {(['diff-review', 'narrative-review'] as const).map((mode: AppMode) => (
           <button
@@ -55,25 +52,28 @@ export function TopBar(): ReactElement {
           </button>
         ))}
       </div>
+      <div className={styles.repoName} title={repoRoot ?? undefined}>
+        {displayName || 'Diffy'}
+      </div>
       <div className={styles.actions}>
-        <button
-          className={styles.button}
-          onClick={() => dispatch(openSettings())}
-          title="Settings (⌘,)"
-          type="button"
-        >
-          ⚙
-        </button>
         <button className={styles.button} onClick={() => void handleOpen()} type="button">
           Open
         </button>
         {repoRoot && (
           <button className={styles.button} onClick={handleRefresh} type="button">
-            <span className={refreshing ? styles.spinner : ''}>↻</span>
+            <span className={`${styles.icon} ${refreshing ? styles.spinner : ''}`}>↻</span>
             {' '}Refresh
           </button>
         )}
       </div>
+      <button
+        className={`${styles.button} ${styles.settingsButton}`}
+        onClick={() => dispatch(openSettings())}
+        title="Settings (⌘,)"
+        type="button"
+      >
+        <span className={styles.icon}>⚙</span>
+      </button>
     </div>
   )
 }

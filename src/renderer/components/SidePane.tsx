@@ -1,10 +1,11 @@
 import type { ReactElement } from 'react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import type { FileChange, Section } from '@shared/types'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
+import { useResizablePanel } from '../hooks/use-resizable-panel'
 import {
   refreshStatus,
   selectFile,
@@ -24,56 +25,18 @@ import { FileList } from './FileList'
 import { SectionHeader } from './SectionHeader'
 import styles from './SidePane.module.css'
 
-const DEFAULT_WIDTH = 300
-const MIN_WIDTH = 180
-const MAX_WIDTH = 600
-
 export function SidePane(): ReactElement {
   const dispatch = useAppDispatch()
   const staged = useAppSelector(selectStaged)
   const unstaged = useAppSelector(selectUnstaged)
   const selected = useAppSelector(selectSelected)
 
-  const [width, setWidth] = useState(DEFAULT_WIDTH)
+  const { width, handleMouseDown } = useResizablePanel({ defaultWidth: 300, minWidth: 180, maxWidth: 600, edge: 'left' })
   const [contextMenu, setContextMenu] = useState<{
     file: FileChange
     x: number
     y: number
   } | null>(null)
-  const dragging = useRef(false)
-  const startX = useRef(0)
-  const startWidth = useRef(0)
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      dragging.current = true
-      startX.current = e.clientX
-      startWidth.current = width
-
-      const handleMouseMove = (ev: MouseEvent): void => {
-        if (!dragging.current) return
-        // Dragging left edge: moving mouse left = wider pane
-        const delta = startX.current - ev.clientX
-        const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth.current + delta))
-        setWidth(next)
-      }
-
-      const handleMouseUp = (): void => {
-        dragging.current = false
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
-        document.body.style.cursor = ''
-        document.body.style.userSelect = ''
-      }
-
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
-    },
-    [width],
-  )
 
   const handleSelect = useCallback(
     (path: string, section: Section, origPath?: string) => {

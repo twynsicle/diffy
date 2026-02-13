@@ -24,17 +24,20 @@
   font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border);
 }
 
 .field {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .label {
   display: block;
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
   margin-bottom: var(--spacing-xs);
 }
 
@@ -58,7 +61,7 @@
 
 .hint {
   font-size: var(--font-size-xs);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin-top: var(--spacing-xs);
 }
 
@@ -66,7 +69,9 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--spacing-sm);
-  margin-top: var(--spacing-xl);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border);
 }
 
 .cancelButton {
@@ -103,7 +108,8 @@
 
 .clearButton:disabled,
 .saveButton:disabled,
-.cancelButton:disabled {
+.cancelButton:disabled,
+.addButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -122,6 +128,121 @@
 
 .saveButton:hover {
   opacity: 0.85;
+}
+
+.patternList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.patternChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.patternText {
+  white-space: nowrap;
+}
+
+.patternRemove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.patternRemove:hover {
+  color: var(--danger);
+}
+
+.patternInput {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.patternInput .input {
+  flex: 1;
+}
+
+.addButton {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.addButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.providerToggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.providerOption {
+  flex: 1;
+  background: var(--bg-primary);
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  transition: background 0.15s, color 0.15s;
+}
+
+.providerOption:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.providerOption:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.providerActive {
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-weight: 600;
+}
+
+.providerActive:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  opacity: 0.85;
+}
+
+.warning {
+  font-size: var(--font-size-xs);
+  color: var(--warning, #e8a838);
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(232, 168, 56, 0.1);
+  border: 1px solid rgba(232, 168, 56, 0.3);
+  border-radius: var(--radius-sm);
 }
 
 @keyframes fadeIn {

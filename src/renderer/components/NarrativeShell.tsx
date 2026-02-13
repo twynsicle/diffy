@@ -5,6 +5,7 @@ import { useAppSelector } from '../hooks/use-app-selector'
 import { useNarrativeStream } from '../hooks/use-narrative-stream'
 import {
   checkGhInstalled,
+  clearPr,
   clearReview,
   selectGenerateError,
   selectGenerating,
@@ -18,6 +19,7 @@ import {
 import { addToast } from '../store/ui-slice'
 
 import { ChapterNav } from './ChapterNav'
+import { ChapterNavBar } from './ChapterNavBar'
 import { GeneratingOverlay } from './GeneratingOverlay'
 import styles from './NarrativeShell.module.css'
 import { NarrativeToolbar } from './NarrativeToolbar'
@@ -48,11 +50,23 @@ export function NarrativeShell(): ReactElement {
   const handleGenerate = useCallback(() => {
     if (!prData) return
     void (async () => {
-      const result = await window.api.hasApiKey()
-      if (!result.ok || !result.data) {
-        dispatch(addToast({ message: 'Set your API key in Settings first', variant: 'error' }))
-        return
+      const providerResult = await window.api.getAiProvider()
+      const provider = providerResult.ok ? providerResult.data : 'api'
+
+      if (provider === 'api') {
+        const result = await window.api.hasApiKey()
+        if (!result.ok || !result.data) {
+          dispatch(addToast({ message: 'Set your API key in Settings first', variant: 'error' }))
+          return
+        }
+      } else {
+        const result = await window.api.checkClaudeCliInstalled()
+        if (!result.ok || !result.data) {
+          dispatch(addToast({ message: 'Claude CLI not found. Install Claude Code and try again.', variant: 'error' }))
+          return
+        }
       }
+
       void dispatch(startNarrativeGeneration(prData))
     })()
   }, [dispatch, prData])
@@ -62,6 +76,15 @@ export function NarrativeShell(): ReactElement {
     dispatch(clearReview())
     void dispatch(startNarrativeGeneration(prData))
   }, [dispatch, prData])
+
+  const handleCancel = useCallback(() => {
+    dispatch(clearPr())
+  }, [dispatch])
+
+  const handleCloseReview = useCallback(() => {
+    dispatch(clearReview())
+    dispatch(clearPr())
+  }, [dispatch])
 
   const handleRetry = useCallback(() => {
     if (!prData) return
@@ -77,11 +100,29 @@ export function NarrativeShell(): ReactElement {
     return (
       <div className={styles.shell}>
         <div className={styles.reviewLayout}>
-          <NarrativeToolbar onRegenerate={handleRegenerate} />
+          <NarrativeToolbar onRegenerate={handleRegenerate} onClose={handleCloseReview} />
           <div className={styles.reviewBody}>
             <NarrativeView />
             <ChapterNav />
           </div>
+          <ChapterNavBar />
+        </div>
+      </div>
+    )
+  }
+
+  if (!prData) {
+    return (
+      <div className={styles.shell}>
+        <div className={styles.inputPhase}>
+          {ghInstalled === false && (
+            <div className={styles.warning}>
+              GitHub CLI (gh) not found. Install it from{' '}
+              <code>https://cli.github.com</code> and run <code>gh auth login</code>.
+            </div>
+          )}
+          <PrInput />
+          {prError && <div className={styles.error}>{prError}</div>}
         </div>
       </div>
     )
@@ -90,24 +131,26 @@ export function NarrativeShell(): ReactElement {
   return (
     <div className={styles.shell}>
       <div className={styles.setupPhase}>
-        {ghInstalled === false && (
-          <div className={styles.warning}>
-            GitHub CLI (gh) not found. Install it from{' '}
-            <code>https://cli.github.com</code> and run <code>gh auth login</code>.
+        <PrSummary data={prData} />
+
+        {!generating && !generateError && prData.files.length > 0 && (
+          <div className={styles.setupActions}>
+            <button className={styles.cancelBtn} onClick={handleCancel} type="button">
+              Cancel
+            </button>
+            <button className={styles.generateBtn} onClick={handleGenerate} type="button">
+              Generate Review
+            </button>
           </div>
         )}
-        <PrInput />
-        {prError && <div className={styles.error}>{prError}</div>}
-        {prData && <PrSummary data={prData} />}
 
-        {prData && !generating && !generateError && prData.files.length > 0 && (
-          <button className={styles.generateBtn} onClick={handleGenerate}>
-            Generate Review
-          </button>
-        )}
-
-        {prData && !generating && !generateError && prData.files.length === 0 && (
-          <div className={styles.emptyState}>This PR has no file changes to review.</div>
+        {!generating && !generateError && prData.files.length === 0 && (
+          <div className={styles.emptyState}>
+            <span>This PR has no file changes to review.</span>
+            <button className={styles.cancelBtn} onClick={handleCancel} type="button">
+              Back
+            </button>
+          </div>
         )}
 
         {generating && <GeneratingOverlay />}

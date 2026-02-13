@@ -1,65 +1,33 @@
-import { type ReactElement, useEffect, useRef } from 'react'
+import type { ReactElement } from 'react'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
+import { SUMMARY_SECTION_ID } from '@shared/types'
+
 import { useAppSelector } from '../hooks/use-app-selector'
 import {
   selectActiveChapterId,
+  selectPrData,
   selectReview,
-  setActiveChapter,
 } from '../store/narrative-slice'
 
 import { ChapterCard } from './ChapterCard'
+import { InsightCallout } from './InsightCallout'
 import { MarkdownText } from './MarkdownText'
+import { SummaryCard } from './SummaryCard'
 import styles from './NarrativeView.module.css'
 
 export function NarrativeView(): ReactElement | null {
-  const dispatch = useAppDispatch()
   const review = useAppSelector(selectReview)
   const activeChapterId = useAppSelector(selectActiveChapterId)
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!review) return
-
-    const root = scrollRef.current
-    if (!root) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        let bestEntry: IntersectionObserverEntry | null = null
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue
-          if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
-            bestEntry = entry
-          }
-        }
-        if (bestEntry) {
-          const id = bestEntry.target.id.replace('chapter-', '')
-          dispatch(setActiveChapter(id))
-        }
-      },
-      {
-        root,
-        rootMargin: '-10% 0px -60% 0px',
-        threshold: [0, 0.25, 0.5, 0.75, 1],
-      },
-    )
-
-    for (const chapter of review.chapters) {
-      const el = document.getElementById(`chapter-${chapter.id}`)
-      if (el) observer.observe(el)
-    }
-
-    return () => { observer.disconnect() }
-  }, [dispatch, review])
+  const prData = useAppSelector(selectPrData)
 
   if (!review) return null
 
   const activeChapter = review.chapters.find((ch) => ch.id === activeChapterId)
+  const isSummary = activeChapterId === SUMMARY_SECTION_ID
 
   if (review.chapters.length === 0) {
     return (
-      <div ref={scrollRef} className={styles.scrollContainer}>
+      <div className={styles.scrollContainer}>
         <div className={styles.content}>
           <MarkdownText text={review.overviewSummary} />
           <div className={styles.emptyChapters}>
@@ -70,16 +38,35 @@ export function NarrativeView(): ReactElement | null {
     )
   }
 
-  return (
-    <div ref={scrollRef} className={styles.scrollContainer}>
-      <div className={styles.content}>
-        <div className={styles.srOnly} aria-live="polite">
-          {activeChapter ? `Chapter: ${activeChapter.title}` : ''}
+  if (isSummary && prData) {
+    return (
+      <div className={styles.scrollContainer}>
+        <div className={styles.content}>
+          <div className={styles.srOnly} aria-live="polite">Summary</div>
+          <SummaryCard review={review} prData={prData} />
         </div>
-        <MarkdownText text={review.overviewSummary} />
-        {review.chapters.map((chapter, i) => (
-          <ChapterCard key={chapter.id} chapter={chapter} index={i} />
-        ))}
+      </div>
+    )
+  }
+
+  if (!activeChapter) return null
+
+  return (
+    <div className={styles.scrollContainer}>
+      <div className={styles.chapterLayout}>
+        {activeChapter.insights.length > 0 && (
+          <aside className={styles.insightsSidebar}>
+            {activeChapter.insights.map((insight, i) => (
+              <InsightCallout key={i} insight={insight} />
+            ))}
+          </aside>
+        )}
+        <div className={styles.chapterMain}>
+          <div className={styles.srOnly} aria-live="polite">
+            {`Chapter: ${activeChapter.title}`}
+          </div>
+          <ChapterCard key={activeChapter.id} chapter={activeChapter} />
+        </div>
       </div>
     </div>
   )

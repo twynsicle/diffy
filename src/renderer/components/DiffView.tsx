@@ -48,6 +48,8 @@ export function DiffView(): ReactElement {
         modified={modified}
         language={language}
         theme="vs-dark"
+        keepCurrentOriginalModel={true}
+        keepCurrentModifiedModel={true}
         onMount={handleMount}
         options={{
           readOnly: true,

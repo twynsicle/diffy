@@ -2,16 +2,42 @@
   flex: 1;
   overflow-y: auto;
   min-width: 0;
-  scroll-behavior: smooth;
 }
 
 .content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-xl) 120px;
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.chapterLayout {
+  display: flex;
+  min-height: 0;
+  padding: var(--spacing-xl) var(--spacing-lg) 120px;
   gap: var(--spacing-lg);
+}
+
+.insightsSidebar {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  position: sticky;
+  top: var(--spacing-xl);
+  align-self: flex-start;
+  /* Push down to align first insight with first diff block.
+     Title line-height (1.35rem * 1.4 ≈ 30px) + card gap (--spacing-lg = 16px) */
+  padding-top: calc(1.35rem * 1.4 + var(--spacing-lg));
+}
+
+.chapterMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
 }
 
 .emptyChapters {

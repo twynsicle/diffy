@@ -1,3 +1,5 @@
+export type AiProvider = 'api' | 'cli'
+
 export type Section = 'staged' | 'unstaged'
 
 export type FileChange = {
@@ -67,10 +69,19 @@ export type DiffChunk = {
   content: string
 }
 
+export type InsightType = 'context' | 'rationale' | 'highlight' | 'reference'
+
+export type Insight = {
+  type: InsightType
+  text: string
+}
+
+export const SUMMARY_SECTION_ID = '__summary__'
+
 export type NarrativeChapter = {
   id: string
   title: string
-  summary: string
+  insights: Insight[]
   diffChunks: DiffChunk[]
 }
 

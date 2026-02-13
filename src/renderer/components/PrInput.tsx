@@ -40,26 +40,24 @@ export function PrInput(): ReactElement {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      <div className={styles.row}>
-        <input
-          className={styles.input}
-          type="text"
-          placeholder="https://github.com/owner/repo/pull/123"
-          value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value)
-            if (validationError) setValidationError(null)
-          }}
-          disabled={loading}
-        />
-        <button
-          className={styles.button}
-          type="submit"
-          disabled={loading || inputValue.trim().length === 0}
-        >
-          {loading ? <span className={styles.spinner}>&#8635;</span> : 'Fetch'}
-        </button>
-      </div>
+      <input
+        className={styles.input}
+        type="text"
+        placeholder="https://github.com/owner/repo/pull/123"
+        value={inputValue}
+        onChange={(e) => {
+          setInputValue(e.target.value)
+          if (validationError) setValidationError(null)
+        }}
+        disabled={loading}
+      />
+      <button
+        className={styles.button}
+        type="submit"
+        disabled={loading || inputValue.trim().length === 0}
+      >
+        {loading ? <span className={styles.spinner}>&#8635;</span> : 'Fetch PR'}
+      </button>
       {validationError && <span className={styles.error}>{validationError}</span>}
     </form>
   )

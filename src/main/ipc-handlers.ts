@@ -6,14 +6,28 @@ import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { IPC_CHANNELS } from '@shared/ipc'
 import type { DiffContent, DiffRequest, PrData, PrReference, Result } from '@shared/types'
 
+import type { AiProvider } from '@shared/types'
+
 import { generateNarrative } from './anthropic-client'
+import { checkClaudeCliInstalled, generateNarrativeCli } from './claude-cli-client'
 import { isBinary } from './detect-binary'
 import { checkGhInstalled, fetchPrData } from './gh-runner'
 import { startWatching, stopWatching } from './file-watcher'
 import { getRepoRoot, isPathInsideRepo, runGit } from './git-runner'
 import { detectLanguage } from './language-map'
 import { parseStatus } from './parse-status'
-import { getLastPrUrl, getLastRepoPath, setLastPrUrl, setLastRepoPath } from './persisted-state'
+import {
+  getAiProvider,
+  getCliModel,
+  getExcludedFilePatterns,
+  getLastPrUrl,
+  getLastRepoPath,
+  setAiProvider,
+  setCliModel,
+  setExcludedFilePatterns,
+  setLastPrUrl,
+  setLastRepoPath,
+} from './persisted-state'
 import {
   clearApiKey,
   getApiKey,
@@ -321,9 +335,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       return { ok: false, error: 'Invalid PR data' } satisfies Result<never>
     }
 
-    const apiKey = getApiKey()
-    if (!apiKey) {
-      return { ok: false, error: 'No API key configured' } satisfies Result<never>
+    const provider = getAiProvider()
+
+    if (provider === 'api') {
+      const apiKey = getApiKey()
+      if (!apiKey) {
+        return { ok: false, error: 'No API key configured' } satisfies Result<never>
+      }
     }
 
     narrativeRequestId += 1
@@ -333,14 +351,23 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     activeGenerations.set(requestId, controller)
 
     void (async (): Promise<void> => {
-      const result = await generateNarrative(
-        prData as PrData,
-        apiKey,
-        (chunk) => {
-          mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, chunk)
-        },
-        controller.signal,
-      )
+      const onChunk = (chunk: string): void => {
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, chunk)
+      }
+
+      const result = provider === 'cli'
+        ? await generateNarrativeCli(
+          prData as PrData,
+          onChunk,
+          controller.signal,
+          getCliModel() || undefined,
+        )
+        : await generateNarrative(
+          prData as PrData,
+          getApiKey(),
+          onChunk,
+          controller.signal,
+        )
 
       activeGenerations.delete(requestId)
 
@@ -376,6 +403,56 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
     setLastPrUrl(url.trim())
     return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_AI_PROVIDER, () => {
+    return { ok: true, data: getAiProvider() }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_AI_PROVIDER, (_event, provider: unknown) => {
+    if (provider !== 'api' && provider !== 'cli') {
+      return { ok: false, error: 'Invalid AI provider' } satisfies Result<never>
+    }
+    setAiProvider(provider as AiProvider)
+    return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_CLI_MODEL, () => {
+    return { ok: true, data: getCliModel() }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_CLI_MODEL, (_event, model: unknown) => {
+    if (typeof model !== 'string') {
+      return { ok: false, error: 'Model must be a string' } satisfies Result<never>
+    }
+    setCliModel(model.trim())
+    return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED, async () => {
+    return checkClaudeCliInstalled()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_EXCLUDED_PATTERNS, () => {
+    try {
+      return { ok: true, data: getExcludedFilePatterns() }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to get excluded patterns'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_EXCLUDED_PATTERNS, (_event, patterns: unknown) => {
+    if (!Array.isArray(patterns) || !patterns.every((p) => typeof p === 'string')) {
+      return { ok: false, error: 'Patterns must be an array of strings' } satisfies Result<never>
+    }
+    try {
+      setExcludedFilePatterns(patterns)
+      return { ok: true, data: undefined }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save excluded patterns'
+      return { ok: false, error: msg }
+    }
   })
 }
 

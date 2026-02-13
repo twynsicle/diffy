@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react'
+import { type ReactElement, useEffect, useState } from 'react'
 
+import { isExcludedFromAI } from '@shared/ai-file-filter'
 import type { PrData } from '@shared/types'
 
 import styles from './PrSummary.module.css'
@@ -7,8 +8,6 @@ import styles from './PrSummary.module.css'
 type PrSummaryProps = {
   data: PrData
 }
-
-const MAX_VISIBLE_FILES = 10
 
 const STATUS_CLASS_MAP: Record<string, string> = {
   modified: 'badgeM',
@@ -29,8 +28,17 @@ const STATUS_LABEL_MAP: Record<string, string> = {
 export function PrSummary({ data }: PrSummaryProps): ReactElement {
   const totalAdditions = data.files.reduce((sum, f) => sum + f.additions, 0)
   const totalDeletions = data.files.reduce((sum, f) => sum + f.deletions, 0)
-  const visibleFiles = data.files.slice(0, MAX_VISIBLE_FILES)
-  const overflowCount = data.files.length - MAX_VISIBLE_FILES
+
+  const [userPatterns, setUserPatterns] = useState<string[]>([])
+
+  useEffect(() => {
+    void (async () => {
+      const result = await window.api.getExcludedPatterns()
+      if (result.ok) {
+        setUserPatterns(result.data)
+      }
+    })()
+  }, [])
 
   return (
     <div className={styles.summary}>
@@ -49,20 +57,21 @@ export function PrSummary({ data }: PrSummaryProps): ReactElement {
         <span className={styles.deletions}>-{totalDeletions}</span>
       </div>
       <ul className={styles.fileList}>
-        {visibleFiles.map((file) => {
+        {data.files.map((file) => {
           const cls = STATUS_CLASS_MAP[file.status] ?? 'badgeDefault'
           const label = STATUS_LABEL_MAP[file.status] ?? '?'
+          const excluded = isExcludedFromAI(file.filename, userPatterns)
           return (
-            <li key={file.filename} className={styles.fileItem}>
+            <li
+              key={file.filename}
+              className={`${styles.fileItem} ${excluded ? styles.excluded : ''}`}
+            >
               <span className={`${styles.badge} ${styles[cls]}`}>{label}</span>
               <span className={styles.filename}>{file.filename}</span>
             </li>
           )
         })}
       </ul>
-      {overflowCount > 0 && (
-        <span className={styles.overflow}>&hellip;and {overflowCount} more files</span>
-      )}
     </div>
   )
 }

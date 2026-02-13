@@ -1,6 +1,7 @@
-import type { NarrativeReview, PrData, Result } from '@shared/types'
+import type { Insight, NarrativeReview, PrData, Result } from '@shared/types'
 
 import { buildNarrativePrompt } from './narrative-prompt'
+import { getExcludedFilePatterns } from './persisted-state'
 
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-20250514'
@@ -21,7 +22,7 @@ function parseHttpError(status: number): string {
   }
 }
 
-function parseNarrativeReview(text: string): Result<NarrativeReview> {
+export function parseNarrativeReview(text: string): Result<NarrativeReview> {
   const startTag = '<narrative_review>'
   const endTag = '</narrative_review>'
   const startIdx = text.indexOf(startTag)
@@ -50,7 +51,16 @@ function parseNarrativeReview(text: string): Result<NarrativeReview> {
     return { ok: false, error: 'Narrative review JSON is missing required fields' }
   }
 
-  return { ok: true, data: parsed as NarrativeReview }
+  // Backward-compat: if a chapter has `summary` but no `insights`, convert
+  const review = parsed as NarrativeReview & { chapters: Array<NarrativeReview['chapters'][number] & { summary?: string }> }
+  for (const chapter of review.chapters) {
+    if (!Array.isArray(chapter.insights) && typeof chapter.summary === 'string') {
+      chapter.insights = [{ type: 'context', text: chapter.summary } satisfies Insight]
+      delete chapter.summary
+    }
+  }
+
+  return { ok: true, data: review as NarrativeReview }
 }
 
 export type NarrativeResult = Result<NarrativeReview> & { wasTruncated?: boolean; rawText?: string }
@@ -182,7 +192,8 @@ export async function generateNarrative(
   onChunk: (text: string) => void,
   externalSignal?: AbortSignal,
 ): Promise<NarrativeResult> {
-  const { system, user, wasTruncated } = buildNarrativePrompt(prData)
+  const userPatterns = getExcludedFilePatterns()
+  const { system, user, wasTruncated } = buildNarrativePrompt(prData, userPatterns)
 
   let streamResult = await doStreamRequest(system, user, apiKey, onChunk, externalSignal)
 

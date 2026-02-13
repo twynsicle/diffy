@@ -5,6 +5,16 @@
   overflow: hidden;
 }
 
+.inputPhase {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+}
+
 .setupPhase {
   position: relative;
   flex: 1;
@@ -53,8 +63,29 @@
   padding: var(--spacing-sm) var(--spacing-md);
 }
 
-.generateBtn {
+.setupActions {
+  display: flex;
+  gap: var(--spacing-sm);
   align-self: flex-start;
+}
+
+.cancelBtn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cancelBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.generateBtn {
   padding: var(--spacing-sm) var(--spacing-lg);
   background: var(--accent);
   color: var(--bg-primary);
@@ -71,6 +102,9 @@
 }
 
 .emptyState {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   padding: var(--spacing-md);
