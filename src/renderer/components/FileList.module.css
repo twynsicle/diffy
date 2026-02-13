@@ -1,0 +1,15 @@
+.container {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  user-select: none;
+}

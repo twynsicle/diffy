@@ -1,0 +1,48 @@
+.topBar {
+  display: flex;
+  align-items: center;
+  height: var(--titlebar-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 var(--spacing-md);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.trafficLightSpacer {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.repoName {
+  flex: 1;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.button {
+  -webkit-app-region: no-drag;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: 2px var(--spacing-sm);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

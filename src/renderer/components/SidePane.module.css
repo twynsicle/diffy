@@ -1,0 +1,21 @@
+.pane {
+  width: 300px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.section + .section {
+  border-top: 1px solid var(--border);
+}

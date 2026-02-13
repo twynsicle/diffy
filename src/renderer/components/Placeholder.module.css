@@ -1,0 +1,19 @@
+.placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.message {
+  font-size: var(--font-size-lg);
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}

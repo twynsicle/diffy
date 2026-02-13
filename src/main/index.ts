@@ -2,9 +2,9 @@ import { join } from 'node:path'
 
 import { BrowserWindow, app } from 'electron'
 
-import { registerIpcHandlers } from './ipc-handlers'
+import { cleanup, registerIpcHandlers } from './ipc-handlers'
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -28,19 +28,23 @@ function createWindow(): void {
   } else {
     void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  return mainWindow
 }
 
 void app.whenReady().then(() => {
-  registerIpcHandlers()
-  createWindow()
+  const mainWindow = createWindow()
+  registerIpcHandlers(mainWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+      const newWindow = createWindow()
+      registerIpcHandlers(newWindow)
     }
   })
 })
 
 app.on('window-all-closed', () => {
+  cleanup()
   app.quit()
 })

@@ -1,7 +1,8 @@
-import type { DiffyApi } from '../preload'
+import type { DiffyApi } from '@shared/ipc'
 
 declare global {
-  type Window = {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+  interface Window {
     api: DiffyApi
   }
 }

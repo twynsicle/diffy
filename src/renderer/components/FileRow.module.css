@@ -1,0 +1,92 @@
+.row {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 var(--spacing-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.1s;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.selected {
+  background: var(--bg-tertiary);
+}
+
+.selected:hover {
+  background: var(--bg-tertiary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border-radius: var(--radius-sm);
+  margin-right: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.badgeM {
+  color: var(--warning);
+}
+
+.badgeA {
+  color: var(--success);
+}
+
+.badgeD {
+  color: var(--danger);
+}
+
+.badgeR {
+  color: var(--accent);
+}
+
+.badgeDefault {
+  color: var(--text-muted);
+}
+
+.path {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deleted .path {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.action {
+  opacity: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px var(--spacing-xs);
+  margin-left: var(--spacing-xs);
+  flex-shrink: 0;
+  transition: opacity 0.1s, color 0.1s;
+}
+
+.row:hover .action {
+  opacity: 1;
+}
+
+.action:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
