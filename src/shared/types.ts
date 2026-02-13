@@ -33,3 +33,5 @@ export type DiffContent = {
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }
+
+export type AppMode = 'diff-review' | 'narrative-review'

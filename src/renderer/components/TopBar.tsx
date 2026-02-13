@@ -1,8 +1,10 @@
 import type { ReactElement } from 'react'
 
+import type { AppMode } from '../../shared/types'
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
 import { refreshStatus, selectRefreshing } from '../store/changes-slice'
+import { selectActiveMode, setMode } from '../store/mode-slice'
 import {
   openRepo,
   selectRepoDisplayName,
@@ -16,6 +18,7 @@ export function TopBar(): ReactElement {
   const repoRoot = useAppSelector(selectRepoRoot)
   const displayName = useAppSelector(selectRepoDisplayName)
   const refreshing = useAppSelector(selectRefreshing)
+  const activeMode = useAppSelector(selectActiveMode)
 
   const handleOpen = async (): Promise<void> => {
     const folderPath = await window.api.selectFolder()
@@ -38,6 +41,18 @@ export function TopBar(): ReactElement {
       <div className={styles.trafficLightSpacer} />
       <div className={styles.repoName} title={repoRoot ?? undefined}>
         {displayName || 'Diffy'}
+      </div>
+      <div className={styles.modeToggle}>
+        {(['diff-review', 'narrative-review'] as const).map((mode: AppMode) => (
+          <button
+            key={mode}
+            className={`${styles.modeButton} ${activeMode === mode ? styles.modeButtonActive : ''}`}
+            onClick={() => dispatch(setMode(mode))}
+            type="button"
+          >
+            {mode === 'diff-review' ? 'Diff Review' : 'Narrative Review'}
+          </button>
+        ))}
       </div>
       <div className={styles.actions}>
         <button className={styles.button} onClick={() => void handleOpen()} type="button">

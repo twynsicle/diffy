@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { changesReducer } from './changes-slice'
 import { diffReducer } from './diff-slice'
 import { errorToastMiddleware } from './error-toast-middleware'
+import { modeReducer } from './mode-slice'
 import { repoReducer } from './repo-slice'
 import { uiReducer } from './ui-slice'
 
@@ -12,6 +13,7 @@ export const store = configureStore({
     changes: changesReducer,
     diff: diffReducer,
     ui: uiReducer,
+    mode: modeReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(errorToastMiddleware),
 })

@@ -5,6 +5,7 @@ import { BinaryPlaceholder } from './components/BinaryPlaceholder'
 import { ConfirmModal } from './components/ConfirmModal'
 import { DiffToolbar } from './components/DiffToolbar'
 import { DiffView } from './components/DiffView'
+import { NarrativeShell } from './components/NarrativeShell'
 import { Placeholder } from './components/Placeholder'
 import { SidePane } from './components/SidePane'
 import { ToastContainer } from './components/ToastContainer'
@@ -20,6 +21,7 @@ import {
   selectDiffIsBinary,
   selectDiffLoading,
 } from './store/diff-slice'
+import { selectActiveMode } from './store/mode-slice'
 import { selectRepoError, selectRepoRoot } from './store/repo-slice'
 
 function MainContent(): ReactElement {
@@ -65,6 +67,7 @@ function MainContent(): ReactElement {
 
 export function App(): ReactElement {
   const repoRoot = useAppSelector(selectRepoRoot)
+  const activeMode = useAppSelector(selectActiveMode)
   useStatusListener()
   useRestoreLastRepo()
   useDiffLoader()
@@ -74,8 +77,14 @@ export function App(): ReactElement {
     <div className={styles.app}>
       <TopBar />
       <div className={styles.content}>
-        <MainContent />
-        {repoRoot && <SidePane />}
+        {activeMode === 'narrative-review' ? (
+          <NarrativeShell />
+        ) : (
+          <>
+            <MainContent />
+            {repoRoot && <SidePane />}
+          </>
+        )}
       </div>
       <ToastContainer />
       <ConfirmModal />
