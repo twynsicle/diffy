@@ -24,7 +24,7 @@ export function ChapterNav(): ReactElement {
   )
 
   return (
-    <nav className={styles.nav}>
+    <nav className={styles.nav} aria-label="Chapter navigation">
       <div className={styles.heading}>Chapters</div>
       <div className={styles.list}>
         {chapters.map((ch, i) => (
@@ -33,6 +33,7 @@ export function ChapterNav(): ReactElement {
             className={`${styles.item} ${ch.id === activeId ? styles.active : ''}`}
             onClick={() => { handleClick(ch.id) }}
             type="button"
+            aria-current={ch.id === activeId ? 'true' : undefined}
           >
             <span className={styles.number}>{i + 1}</span>
             <span className={styles.label}>{ch.title}</span>

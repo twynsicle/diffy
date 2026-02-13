@@ -19,7 +19,7 @@ export function InlineDiffChunk({ chunk }: InlineDiffChunkProps): ReactElement {
   const lines = useMemo(() => chunk.content.split('\n'), [chunk.content])
 
   return (
-    <div className={styles.chunk}>
+    <div className={styles.chunk} role="figure" aria-label={`Diff for ${chunk.filename}`}>
       <div className={styles.header}>
         <span className={styles.filename}>{chunk.filename}</span>
         <span className={styles.badge}>{chunk.language}</span>

@@ -15,6 +15,7 @@ type NarrativeState = {
   generateError: string | null
   streamText: string
   activeChapterId: string | null
+  cancelling: boolean
 }
 
 const initialState: NarrativeState = {
@@ -28,6 +29,7 @@ const initialState: NarrativeState = {
   generateError: null,
   streamText: '',
   activeChapterId: null,
+  cancelling: false,
 }
 
 export const checkGhInstalled = createAsyncThunk<boolean, undefined, { rejectValue: string }>(
@@ -63,6 +65,16 @@ export const startNarrativeGeneration = createAsyncThunk<string, PrData, { rejec
   },
 )
 
+export const cancelGeneration = createAsyncThunk<undefined, undefined, { rejectValue: string }>(
+  'narrative/cancelGeneration',
+  async (_, { rejectWithValue }) => {
+    const result = await window.api.cancelGeneration()
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+  },
+)
+
 const narrativeSlice = createSlice({
   name: 'narrative',
   initialState,
@@ -95,6 +107,7 @@ const narrativeSlice = createSlice({
     setGenerateError(state, action: PayloadAction<string>) {
       state.generateError = action.payload
       state.generating = false
+      state.cancelling = false
     },
     clearReview(state) {
       state.review = null
@@ -136,6 +149,16 @@ const narrativeSlice = createSlice({
       state.generating = false
       state.generateError = action.payload ?? action.error.message ?? 'Failed to start generation'
     })
+
+    builder.addCase(cancelGeneration.pending, (state) => {
+      state.cancelling = true
+    })
+    builder.addCase(cancelGeneration.fulfilled, (state) => {
+      state.cancelling = false
+    })
+    builder.addCase(cancelGeneration.rejected, (state) => {
+      state.cancelling = false
+    })
   },
 })
 
@@ -162,6 +185,7 @@ export const selectStreamText = (state: RootState): string => state.narrative.st
 export const selectActiveChapterId = (state: RootState): string | null => state.narrative.activeChapterId
 export const selectChapterList = (state: RootState): { id: string; title: string }[] =>
   state.narrative.review?.chapters.map((ch) => ({ id: ch.id, title: ch.title })) ?? []
+export const selectCancelling = (state: RootState): boolean => state.narrative.cancelling
 export const selectActiveChapterIndex = (state: RootState): number => {
   const { review, activeChapterId } = state.narrative
   if (!review || !activeChapterId) return -1

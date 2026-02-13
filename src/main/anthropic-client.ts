@@ -6,6 +6,7 @@ const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-20250514'
 const MAX_TOKENS = 16_000
 const TIMEOUT_MS = 120_000
+const RETRY_WAIT_MS = 15_000
 
 function parseHttpError(status: number): string {
   switch (status) {
@@ -52,17 +53,28 @@ function parseNarrativeReview(text: string): Result<NarrativeReview> {
   return { ok: true, data: parsed as NarrativeReview }
 }
 
-export async function generateNarrative(
-  prData: PrData,
+export type NarrativeResult = Result<NarrativeReview> & { wasTruncated?: boolean; rawText?: string }
+
+async function doStreamRequest(
+  system: string,
+  user: string,
   apiKey: string,
   onChunk: (text: string) => void,
-): Promise<Result<NarrativeReview>> {
-  const { system, user } = buildNarrativePrompt(prData)
-
+  externalSignal?: AbortSignal,
+): Promise<{ accumulated: string; error?: string }> {
   const controller = new AbortController()
   const timeout = setTimeout(() => {
     controller.abort()
   }, TIMEOUT_MS)
+
+  if (externalSignal) {
+    const onAbort = (): void => { controller.abort() }
+    externalSignal.addEventListener('abort', onAbort, { once: true })
+    // Clean up if we finish before external abort
+    controller.signal.addEventListener('abort', () => {
+      externalSignal.removeEventListener('abort', onAbort)
+    }, { once: true })
+  }
 
   let response: Response
   try {
@@ -85,21 +97,28 @@ export async function generateNarrative(
   } catch (err) {
     clearTimeout(timeout)
     if (err instanceof Error && err.name === 'AbortError') {
-      return { ok: false, error: 'Request timed out after 2 minutes' }
+      if (externalSignal?.aborted) {
+        return { accumulated: '', error: 'Generation cancelled' }
+      }
+      return { accumulated: '', error: 'Request timed out after 2 minutes' }
     }
     const msg = err instanceof Error ? err.message : 'Network error'
-    return { ok: false, error: `Failed to connect to Anthropic API: ${msg}` }
+    return { accumulated: '', error: `Failed to connect to Anthropic API: ${msg}` }
   }
 
   if (!response.ok) {
     clearTimeout(timeout)
-    return { ok: false, error: parseHttpError(response.status) }
+    // Return status for 529 retry handling
+    if (response.status === 529) {
+      return { accumulated: '', error: `529` }
+    }
+    return { accumulated: '', error: parseHttpError(response.status) }
   }
 
   const body = response.body
   if (!body) {
     clearTimeout(timeout)
-    return { ok: false, error: 'Response body is empty' }
+    return { accumulated: '', error: 'Response body is empty' }
   }
 
   let accumulated = ''
@@ -144,12 +163,54 @@ export async function generateNarrative(
   } catch (err) {
     clearTimeout(timeout)
     if (err instanceof Error && err.name === 'AbortError') {
-      return { ok: false, error: 'Request timed out after 2 minutes' }
+      if (externalSignal?.aborted) {
+        return { accumulated, error: 'Generation cancelled' }
+      }
+      return { accumulated, error: 'Request timed out after 2 minutes' }
     }
     const msg = err instanceof Error ? err.message : 'Stream read error'
-    return { ok: false, error: `Error reading response stream: ${msg}` }
+    return { accumulated, error: `Error reading response stream: ${msg}` }
   }
 
   clearTimeout(timeout)
-  return parseNarrativeReview(accumulated)
+  return { accumulated }
+}
+
+export async function generateNarrative(
+  prData: PrData,
+  apiKey: string,
+  onChunk: (text: string) => void,
+  externalSignal?: AbortSignal,
+): Promise<NarrativeResult> {
+  const { system, user, wasTruncated } = buildNarrativePrompt(prData)
+
+  let streamResult = await doStreamRequest(system, user, apiKey, onChunk, externalSignal)
+
+  // 529 retry: wait 15s with countdown, then retry once
+  if (streamResult.error === '529') {
+    const totalSeconds = Math.ceil(RETRY_WAIT_MS / 1000)
+    for (let s = totalSeconds; s > 0; s--) {
+      if (externalSignal?.aborted) {
+        return { ok: false, error: 'Generation cancelled' }
+      }
+      onChunk(`\n[API busy — retrying in ${String(s)}s...]\n`)
+      await new Promise((resolve) => { setTimeout(resolve, 1000) })
+    }
+    streamResult = await doStreamRequest(system, user, apiKey, onChunk, externalSignal)
+    if (streamResult.error === '529') {
+      return { ok: false, error: parseHttpError(529), wasTruncated }
+    }
+  }
+
+  if (streamResult.error) {
+    return { ok: false, error: streamResult.error, wasTruncated, rawText: streamResult.accumulated || undefined }
+  }
+
+  const parseResult = parseNarrativeReview(streamResult.accumulated)
+
+  if (!parseResult.ok) {
+    return { ...parseResult, wasTruncated, rawText: streamResult.accumulated }
+  }
+
+  return { ...parseResult, wasTruncated }
 }

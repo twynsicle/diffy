@@ -6,6 +6,7 @@
 }
 
 .setupPhase {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -69,48 +70,10 @@
   background: var(--accent-hover);
 }
 
-.loadingContainer {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-subtle);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loadingLabel {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
-.streamPreview {
-  margin: 0;
-  padding: var(--spacing-sm);
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
+.emptyState {
   font-size: var(--font-size-sm);
   color: var(--text-muted);
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 120px;
-  overflow-y: auto;
+  padding: var(--spacing-md);
 }
 
 .generateError {
@@ -139,4 +102,27 @@
 
 .retryBtn:hover {
   background: rgba(243, 139, 168, 0.12);
+}
+
+.errorActions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.rawBtn {
+  flex-shrink: 0;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.rawBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }

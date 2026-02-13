@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactElement, useState } from 'react'
+import { type FormEvent, type ReactElement, useEffect, useState } from 'react'
 
 import { parsePrUrl } from '@shared/parse-pr-url'
 
@@ -14,6 +14,15 @@ export function PrInput(): ReactElement {
   const [inputValue, setInputValue] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
 
+  useEffect(() => {
+    void (async () => {
+      const lastUrl = await window.api.getLastPrUrl()
+      if (lastUrl) {
+        setInputValue(lastUrl)
+      }
+    })()
+  }, [])
+
   function handleSubmit(e: FormEvent): void {
     e.preventDefault()
     setValidationError(null)
@@ -25,6 +34,7 @@ export function PrInput(): ReactElement {
     }
 
     dispatch(setPrUrl(inputValue.trim()))
+    void window.api.setLastPrUrl(inputValue.trim())
     void dispatch(fetchPr(ref))
   }
 

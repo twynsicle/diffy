@@ -55,6 +55,14 @@ function runGh(args: string[], timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<
   })
 }
 
+async function runGhWithRetry(args: string[], timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<Result<string>> {
+  const result = await runGh(args, timeoutMs)
+  if (!result.ok && result.error.includes('timed out')) {
+    return runGh(args, timeoutMs * 2)
+  }
+  return result
+}
+
 export async function checkGhInstalled(): Promise<Result<boolean>> {
   const result = await runGh(['--version'])
   if (!result.ok) {
@@ -71,7 +79,7 @@ export async function fetchPrData(ref: PrReference): Promise<Result<PrData>> {
   const prNum = String(ref.number)
 
   // 1. Fetch PR metadata
-  const metaResult = await runGh([
+  const metaResult = await runGhWithRetry([
     'pr', 'view', prNum,
     '--repo', repoFlag,
     '--json', 'title,body,author,baseRefName,headRefName',
@@ -86,7 +94,7 @@ export async function fetchPrData(ref: PrReference): Promise<Result<PrData>> {
   }
 
   // 2. Fetch PR files
-  const filesResult = await runGh([
+  const filesResult = await runGhWithRetry([
     'api', `repos/${repoFlag}/pulls/${prNum}/files`,
     '--paginate',
   ])
@@ -115,7 +123,7 @@ export async function fetchPrData(ref: PrReference): Promise<Result<PrData>> {
   }))
 
   // 3. Fetch PR diff
-  const diffResult = await runGh([
+  const diffResult = await runGhWithRetry([
     'pr', 'diff', prNum,
     '--repo', repoFlag,
   ])

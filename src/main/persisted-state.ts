@@ -5,6 +5,7 @@ import { app } from 'electron'
 
 type PersistedState = {
   lastRepoPath?: string
+  lastPrUrl?: string
 }
 
 function getFilePath(): string {
@@ -34,4 +35,12 @@ export function getLastRepoPath(): string | null {
 
 export function setLastRepoPath(repoPath: string): void {
   write({ ...read(), lastRepoPath: repoPath })
+}
+
+export function getLastPrUrl(): string | null {
+  return read().lastPrUrl ?? null
+}
+
+export function setLastPrUrl(url: string): void {
+  write({ ...read(), lastPrUrl: url })
 }

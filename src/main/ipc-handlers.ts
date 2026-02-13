@@ -13,7 +13,7 @@ import { startWatching, stopWatching } from './file-watcher'
 import { getRepoRoot, isPathInsideRepo, runGit } from './git-runner'
 import { detectLanguage } from './language-map'
 import { parseStatus } from './parse-status'
-import { getLastRepoPath, setLastRepoPath } from './persisted-state'
+import { getLastPrUrl, getLastRepoPath, setLastPrUrl, setLastRepoPath } from './persisted-state'
 import {
   clearApiKey,
   getApiKey,
@@ -22,6 +22,7 @@ import {
 } from './secure-storage'
 
 let currentRepoRoot: string | null = null
+const activeGenerations = new Map<string, AbortController>()
 
 async function isTracked(repoRoot: string, filePath: string): Promise<boolean> {
   const result = await runGit({
@@ -328,6 +329,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     narrativeRequestId += 1
     const requestId = String(narrativeRequestId)
 
+    const controller = new AbortController()
+    activeGenerations.set(requestId, controller)
+
     void (async (): Promise<void> => {
       const result = await generateNarrative(
         prData as PrData,
@@ -335,7 +339,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
         (chunk) => {
           mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, chunk)
         },
+        controller.signal,
       )
+
+      activeGenerations.delete(requestId)
+
+      if (result.wasTruncated) {
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_TRUNCATION_WARNING)
+      }
 
       if (result.ok) {
         mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_COMPLETE, result.data)
@@ -346,9 +357,33 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
     return { ok: true, data: requestId } satisfies Result<string>
   })
+
+  ipcMain.handle(IPC_CHANNELS.LLM_CANCEL_GENERATION, () => {
+    for (const controller of activeGenerations.values()) {
+      controller.abort()
+    }
+    activeGenerations.clear()
+    return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_LAST_PR_URL, () => {
+    return getLastPrUrl()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_LAST_PR_URL, (_event, url: unknown) => {
+    if (typeof url !== 'string' || url.trim().length === 0) {
+      return { ok: false, error: 'URL must be a non-empty string' } satisfies Result<never>
+    }
+    setLastPrUrl(url.trim())
+    return { ok: true, data: undefined }
+  })
 }
 
 export function cleanup(): void {
   stopWatching()
+  for (const controller of activeGenerations.values()) {
+    controller.abort()
+  }
+  activeGenerations.clear()
   currentRepoRoot = null
 }

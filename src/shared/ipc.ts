@@ -26,6 +26,10 @@ export const IPC_CHANNELS = {
   LLM_STREAM_CHUNK: 'llm.streamChunk',
   LLM_STREAM_COMPLETE: 'llm.streamComplete',
   LLM_STREAM_ERROR: 'llm.streamError',
+  LLM_CANCEL_GENERATION: 'llm.cancelGeneration',
+  LLM_TRUNCATION_WARNING: 'llm.truncationWarning',
+  SETTINGS_GET_LAST_PR_URL: 'settings.getLastPrUrl',
+  SETTINGS_SET_LAST_PR_URL: 'settings.setLastPrUrl',
 } as const
 
 export type RepoOpenResult = {
@@ -59,4 +63,8 @@ export type DiffyApi = {
   onNarrativeStreamChunk: (callback: (chunk: string) => void) => () => void
   onNarrativeStreamComplete: (callback: (review: NarrativeReview) => void) => () => void
   onNarrativeStreamError: (callback: (error: string) => void) => () => void
+  cancelGeneration: () => Promise<Result<void>>
+  getLastPrUrl: () => Promise<string | null>
+  setLastPrUrl: (url: string) => Promise<Result<void>>
+  onNarrativeTruncationWarning: (callback: () => void) => () => void
 }

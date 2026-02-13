@@ -3,6 +3,7 @@ import { type ReactElement, useEffect, useRef } from 'react'
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
 import {
+  selectActiveChapterId,
   selectReview,
   setActiveChapter,
 } from '../store/narrative-slice'
@@ -14,6 +15,7 @@ import styles from './NarrativeView.module.css'
 export function NarrativeView(): ReactElement | null {
   const dispatch = useAppDispatch()
   const review = useAppSelector(selectReview)
+  const activeChapterId = useAppSelector(selectActiveChapterId)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -53,9 +55,27 @@ export function NarrativeView(): ReactElement | null {
 
   if (!review) return null
 
+  const activeChapter = review.chapters.find((ch) => ch.id === activeChapterId)
+
+  if (review.chapters.length === 0) {
+    return (
+      <div ref={scrollRef} className={styles.scrollContainer}>
+        <div className={styles.content}>
+          <MarkdownText text={review.overviewSummary} />
+          <div className={styles.emptyChapters}>
+            The AI did not generate any chapters for this PR. Try regenerating.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div ref={scrollRef} className={styles.scrollContainer}>
       <div className={styles.content}>
+        <div className={styles.srOnly} aria-live="polite">
+          {activeChapter ? `Chapter: ${activeChapter.title}` : ''}
+        </div>
         <MarkdownText text={review.overviewSummary} />
         {review.chapters.map((chapter, i) => (
           <ChapterCard key={chapter.id} chapter={chapter} index={i} />

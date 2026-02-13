@@ -5,9 +5,9 @@ const CHARS_PER_TOKEN = 4
 const MAX_DIFF_CHARS = MAX_DIFF_TOKENS * CHARS_PER_TOKEN
 const KEEP_LINES = 80
 
-function truncateDiff(diff: string): string {
+function truncateDiff(diff: string): { result: string; wasTruncated: boolean } {
   if (diff.length <= MAX_DIFF_CHARS) {
-    return diff
+    return { result: diff, wasTruncated: false }
   }
 
   const patches = diff.split(/(?=^diff --git )/m)
@@ -38,12 +38,12 @@ function truncateDiff(diff: string): string {
 
   const result = truncated.join('')
   if (result.length > MAX_DIFF_CHARS) {
-    return result.slice(0, MAX_DIFF_CHARS) + '\n[... diff truncated due to size ...]'
+    return { result: result.slice(0, MAX_DIFF_CHARS) + '\n[... diff truncated due to size ...]', wasTruncated: true }
   }
-  return result
+  return { result, wasTruncated: true }
 }
 
-export function buildNarrativePrompt(prData: PrData): { system: string; user: string } {
+export function buildNarrativePrompt(prData: PrData): { system: string; user: string; wasTruncated: boolean } {
   const system = `You are a senior software engineer reviewing a pull request. Your job is to produce a structured narrative review that organizes the PR changes into logical chapters.
 
 Output a JSON object wrapped in <narrative_review> tags. The JSON must conform to this schema:
@@ -69,7 +69,7 @@ Output a JSON object wrapped in <narrative_review> tags. The JSON must conform t
 }
 
 Guidelines:
-- Produce 3–12 chapters depending on PR complexity.
+- Produce 2–12 chapters depending on PR complexity. For small PRs (1–2 files, under 20 lines changed), 2–3 chapters is appropriate.
 - Group related changes together logically (e.g. "API types", "database migration", "UI components").
 - Each chapter should tell a coherent story about one aspect of the change.
 - Include the most important diff chunks in each chapter to illustrate the changes.
@@ -80,9 +80,9 @@ Guidelines:
     .map((f) => `  ${f.status.padEnd(10)} +${String(f.additions)}/-${String(f.deletions)}  ${f.filename}`)
     .join('\n')
 
-  const diff = truncateDiff(prData.diff)
+  const { result: diff, wasTruncated } = truncateDiff(prData.diff)
 
-  const user = `# Pull Request: ${prData.title}
+  let user = `# Pull Request: ${prData.title}
 
 **Author**: ${prData.author}
 **Branches**: ${prData.headRefName} → ${prData.baseRefName}
@@ -98,5 +98,9 @@ ${fileList}
 ${diff}
 \`\`\``
 
-  return { system, user }
+  if (wasTruncated) {
+    user += '\n\nNote: Some large file diffs were truncated. Focus your narrative on the available content.'
+  }
+
+  return { system, user, wasTruncated }
 }

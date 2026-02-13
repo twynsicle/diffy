@@ -13,15 +13,26 @@ type ChapterCardProps = {
 
 export function ChapterCard({ chapter, index }: ChapterCardProps): ReactElement {
   return (
-    <section id={`chapter-${chapter.id}`} className={styles.card}>
+    <article
+      id={`chapter-${chapter.id}`}
+      className={styles.card}
+      aria-labelledby={`chapter-heading-${chapter.id}`}
+      style={{ animationDelay: `${String(index * 50)}ms` }}
+    >
       <div className={styles.header}>
-        <span className={styles.badge}>{index + 1}</span>
-        <h2 className={styles.title}>{chapter.title}</h2>
+        <span className={styles.badge} aria-hidden="true">{index + 1}</span>
+        <h2
+          id={`chapter-heading-${chapter.id}`}
+          className={styles.title}
+          tabIndex={-1}
+        >
+          {chapter.title}
+        </h2>
       </div>
       <MarkdownText text={chapter.summary} />
       {chapter.diffChunks.map((chunk, i) => (
         <InlineDiffChunk key={i} chunk={chunk} />
       ))}
-    </section>
+    </article>
   )
 }

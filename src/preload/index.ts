@@ -88,6 +88,18 @@ const api: DiffyApi = {
       ipcRenderer.removeListener(IPC_CHANNELS.LLM_STREAM_ERROR, listener)
     }
   },
+  cancelGeneration: () => ipcRenderer.invoke(IPC_CHANNELS.LLM_CANCEL_GENERATION),
+  getLastPrUrl: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_LAST_PR_URL),
+  setLastPrUrl: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_LAST_PR_URL, url),
+  onNarrativeTruncationWarning: (callback: () => void) => {
+    const listener = (): void => {
+      callback()
+    }
+    ipcRenderer.on(IPC_CHANNELS.LLM_TRUNCATION_WARNING, listener)
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.LLM_TRUNCATION_WARNING, listener)
+    }
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

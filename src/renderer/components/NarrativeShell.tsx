@@ -1,4 +1,4 @@
-import { type ReactElement, useCallback, useEffect } from 'react'
+import { type ReactElement, useCallback, useEffect, useState } from 'react'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
@@ -18,13 +18,13 @@ import {
 import { addToast } from '../store/ui-slice'
 
 import { ChapterNav } from './ChapterNav'
+import { GeneratingOverlay } from './GeneratingOverlay'
 import styles from './NarrativeShell.module.css'
 import { NarrativeToolbar } from './NarrativeToolbar'
 import { NarrativeView } from './NarrativeView'
 import { PrInput } from './PrInput'
 import { PrSummary } from './PrSummary'
-
-const STREAM_PREVIEW_CHARS = 500
+import { RawResponseModal } from './RawResponseModal'
 
 export function NarrativeShell(): ReactElement {
   const dispatch = useAppDispatch()
@@ -35,6 +35,7 @@ export function NarrativeShell(): ReactElement {
   const generateError = useAppSelector(selectGenerateError)
   const review = useAppSelector(selectReview)
   const streamText = useAppSelector(selectStreamText)
+  const [showRaw, setShowRaw] = useState(false)
 
   useNarrativeStream()
 
@@ -68,9 +69,9 @@ export function NarrativeShell(): ReactElement {
     void dispatch(startNarrativeGeneration(prData))
   }, [dispatch, prData])
 
-  const streamPreview = streamText.length > STREAM_PREVIEW_CHARS
-    ? '...' + streamText.slice(-STREAM_PREVIEW_CHARS)
-    : streamText
+  const isParseError = generateError
+    ? generateError.includes('parse') || generateError.includes('tags')
+    : false
 
   if (review) {
     return (
@@ -99,30 +100,35 @@ export function NarrativeShell(): ReactElement {
         {prError && <div className={styles.error}>{prError}</div>}
         {prData && <PrSummary data={prData} />}
 
-        {prData && !generating && !generateError && (
+        {prData && !generating && !generateError && prData.files.length > 0 && (
           <button className={styles.generateBtn} onClick={handleGenerate}>
             Generate Review
           </button>
         )}
 
-        {generating && (
-          <div className={styles.loadingContainer}>
-            <div className={styles.spinner} />
-            <span className={styles.loadingLabel}>Generating narrative review…</span>
-            {streamPreview && (
-              <pre className={styles.streamPreview}>{streamPreview}</pre>
-            )}
-          </div>
+        {prData && !generating && !generateError && prData.files.length === 0 && (
+          <div className={styles.emptyState}>This PR has no file changes to review.</div>
         )}
+
+        {generating && <GeneratingOverlay />}
 
         {generateError && (
           <div className={styles.generateError}>
             <span>{generateError}</span>
-            <button className={styles.retryBtn} onClick={handleRetry}>
-              Retry
-            </button>
+            <div className={styles.errorActions}>
+              <button className={styles.retryBtn} onClick={handleRetry}>
+                Retry
+              </button>
+              {isParseError && streamText && (
+                <button className={styles.rawBtn} onClick={() => { setShowRaw(true) }}>
+                  View Raw Response
+                </button>
+              )}
+            </div>
           </div>
         )}
+
+        {showRaw && <RawResponseModal text={streamText} onClose={() => { setShowRaw(false) }} />}
       </div>
     </div>
   )

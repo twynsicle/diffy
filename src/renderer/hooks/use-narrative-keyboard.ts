@@ -33,6 +33,7 @@ export function useNarrativeKeyboard(): void {
         e.preventDefault()
         dispatch(setActiveChapter(id))
         scrollToChapter(id)
+        document.getElementById(`chapter-heading-${id}`)?.focus()
       }
 
       if (e.key === 'ArrowRight' || (e.key === ' ' && !e.shiftKey)) {

@@ -5,6 +5,7 @@ import {
   setGenerateError,
   setReview,
 } from '../store/narrative-slice'
+import { addToast } from '../store/ui-slice'
 
 import { useAppDispatch } from './use-app-dispatch'
 
@@ -24,10 +25,15 @@ export function useNarrativeStream(): void {
       dispatch(setGenerateError(error))
     })
 
+    const unsubTruncation = window.api.onNarrativeTruncationWarning(() => {
+      dispatch(addToast({ message: 'Large PR — some file diffs were truncated for the AI', variant: 'info' }))
+    })
+
     return () => {
       unsubChunk()
       unsubComplete()
       unsubError()
+      unsubTruncation()
     }
   }, [dispatch])
 }
