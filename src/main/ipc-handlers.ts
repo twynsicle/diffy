@@ -4,9 +4,10 @@ import { basename, join } from 'node:path'
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
-import type { DiffContent, DiffRequest, Result } from '@shared/types'
+import type { DiffContent, DiffRequest, PrReference, Result } from '@shared/types'
 
 import { isBinary } from './detect-binary'
+import { checkGhInstalled, fetchPrData } from './gh-runner'
 import { startWatching, stopWatching } from './file-watcher'
 import { getRepoRoot, isPathInsideRepo, runGit } from './git-runner'
 import { detectLanguage } from './language-map'
@@ -286,6 +287,23 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       const msg = err instanceof Error ? err.message : 'Failed to clear API key'
       return { ok: false, error: msg }
     }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GH_CHECK_INSTALLED, async () => {
+    return checkGhInstalled()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GH_FETCH_PR, async (_event, ref: unknown) => {
+    if (
+      typeof ref !== 'object' ||
+      ref === null ||
+      typeof (ref as PrReference).owner !== 'string' ||
+      typeof (ref as PrReference).repo !== 'string' ||
+      typeof (ref as PrReference).number !== 'number'
+    ) {
+      return { ok: false, error: 'Invalid PR reference' } satisfies Result<never>
+    }
+    return fetchPrData(ref as PrReference)
   })
 }
 

@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type { DiffyApi } from '@shared/ipc'
-import type { DiffRequest } from '@shared/types'
+import type { DiffRequest, PrReference } from '@shared/types'
 
 const api: DiffyApi = {
   getLastRepo: () => ipcRenderer.invoke(IPC_CHANNELS.REPO_GET_LAST),
@@ -57,6 +57,8 @@ const api: DiffyApi = {
   setApiKey: (key) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_API_KEY, key),
   hasApiKey: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_HAS_API_KEY),
   clearApiKey: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_CLEAR_API_KEY),
+  checkGhInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.GH_CHECK_INSTALLED),
+  fetchPr: (ref: PrReference) => ipcRenderer.invoke(IPC_CHANNELS.GH_FETCH_PR, ref),
 }
 
 contextBridge.exposeInMainWorld('api', api)

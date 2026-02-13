@@ -35,3 +35,27 @@ export type Result<T> =
   | { ok: false; error: string }
 
 export type AppMode = 'diff-review' | 'narrative-review'
+
+export type PrReference = {
+  owner: string
+  repo: string
+  number: number
+}
+
+export type PrFileChange = {
+  filename: string
+  status: string
+  additions: number
+  deletions: number
+  patch?: string
+}
+
+export type PrData = {
+  title: string
+  body: string
+  author: string
+  baseRefName: string
+  headRefName: string
+  files: PrFileChange[]
+  diff: string
+}

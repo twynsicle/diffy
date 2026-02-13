@@ -1,4 +1,4 @@
-import type { DiffContent, DiffRequest, RepoStatus, Result } from './types'
+import type { DiffContent, DiffRequest, PrData, PrReference, RepoStatus, Result } from './types'
 
 export const IPC_CHANNELS = {
   REPO_GET_LAST: 'repo.getLast',
@@ -20,6 +20,8 @@ export const IPC_CHANNELS = {
   SETTINGS_SET_API_KEY: 'settings.setApiKey',
   SETTINGS_HAS_API_KEY: 'settings.hasApiKey',
   SETTINGS_CLEAR_API_KEY: 'settings.clearApiKey',
+  GH_CHECK_INSTALLED: 'gh.checkInstalled',
+  GH_FETCH_PR: 'gh.fetchPr',
 } as const
 
 export type RepoOpenResult = {
@@ -47,4 +49,6 @@ export type DiffyApi = {
   setApiKey: (key: string) => Promise<Result<void>>
   hasApiKey: () => Promise<Result<boolean>>
   clearApiKey: () => Promise<Result<void>>
+  checkGhInstalled: () => Promise<Result<boolean>>
+  fetchPr: (ref: PrReference) => Promise<Result<PrData>>
 }
