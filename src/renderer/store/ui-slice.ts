@@ -24,6 +24,7 @@ type ConfirmModal = {
 type UiState = {
   toasts: Toast[]
   confirmModal: ConfirmModal
+  settingsOpen: boolean
 }
 
 const initialState: UiState = {
@@ -33,6 +34,7 @@ const initialState: UiState = {
     title: '',
     message: '',
   },
+  settingsOpen: false,
 }
 
 let nextToastId = 0
@@ -66,11 +68,18 @@ const uiSlice = createSlice({
     closeConfirmModal(state) {
       state.confirmModal = { open: false, title: '', message: '' }
     },
+    openSettings(state) {
+      state.settingsOpen = true
+    },
+    closeSettings(state) {
+      state.settingsOpen = false
+    },
   },
 })
 
-export const { addToast, dismissToast, showConfirmModal, closeConfirmModal } = uiSlice.actions
+export const { addToast, dismissToast, showConfirmModal, closeConfirmModal, openSettings, closeSettings } = uiSlice.actions
 export const uiReducer = uiSlice.reducer
 
 export const selectToasts = (state: RootState): Toast[] => state.ui.toasts
 export const selectConfirmModal = (state: RootState): ConfirmModal => state.ui.confirmModal
+export const selectSettingsOpen = (state: RootState): boolean => state.ui.settingsOpen

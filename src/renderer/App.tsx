@@ -3,6 +3,7 @@ import type { ReactElement } from 'react'
 import styles from './App.module.css'
 import { BinaryPlaceholder } from './components/BinaryPlaceholder'
 import { ConfirmModal } from './components/ConfirmModal'
+import { SettingsDialog } from './components/SettingsDialog'
 import { DiffToolbar } from './components/DiffToolbar'
 import { DiffView } from './components/DiffView'
 import { NarrativeShell } from './components/NarrativeShell'
@@ -88,6 +89,7 @@ export function App(): ReactElement {
       </div>
       <ToastContainer />
       <ConfirmModal />
+      <SettingsDialog />
     </div>
   )
 }

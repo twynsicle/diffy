@@ -10,6 +10,7 @@ import {
   selectRepoDisplayName,
   selectRepoRoot,
 } from '../store/repo-slice'
+import { openSettings } from '../store/ui-slice'
 
 import styles from './TopBar.module.css'
 
@@ -55,6 +56,14 @@ export function TopBar(): ReactElement {
         ))}
       </div>
       <div className={styles.actions}>
+        <button
+          className={styles.button}
+          onClick={() => dispatch(openSettings())}
+          title="Settings (⌘,)"
+          type="button"
+        >
+          ⚙
+        </button>
         <button className={styles.button} onClick={() => void handleOpen()} type="button">
           Open
         </button>

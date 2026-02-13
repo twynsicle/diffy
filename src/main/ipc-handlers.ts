@@ -12,6 +12,12 @@ import { getRepoRoot, isPathInsideRepo, runGit } from './git-runner'
 import { detectLanguage } from './language-map'
 import { parseStatus } from './parse-status'
 import { getLastRepoPath, setLastRepoPath } from './persisted-state'
+import {
+  clearApiKey,
+  getApiKey,
+  hasApiKey,
+  setApiKey,
+} from './secure-storage'
 
 let currentRepoRoot: string | null = null
 
@@ -239,6 +245,47 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       }
     }
     return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_API_KEY, () => {
+    try {
+      return { ok: true, data: getApiKey() }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to get API key'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_API_KEY, (_event, key: string) => {
+    if (typeof key !== 'string' || key.trim().length === 0) {
+      return { ok: false, error: 'API key must be a non-empty string' }
+    }
+    try {
+      setApiKey(key.trim())
+      return { ok: true, data: undefined }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save API key'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_HAS_API_KEY, () => {
+    try {
+      return { ok: true, data: hasApiKey() }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to check API key'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_CLEAR_API_KEY, () => {
+    try {
+      clearApiKey()
+      return { ok: true, data: undefined }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to clear API key'
+      return { ok: false, error: msg }
+    }
   })
 }
 

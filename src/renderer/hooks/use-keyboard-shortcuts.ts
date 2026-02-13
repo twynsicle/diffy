@@ -5,6 +5,7 @@ import { useAppSelector } from './use-app-selector'
 import { refreshStatus } from '../store/changes-slice'
 import { openRepo } from '../store/repo-slice'
 import { selectRepoRoot } from '../store/repo-slice'
+import { openSettings } from '../store/ui-slice'
 
 export function useKeyboardShortcuts(): void {
   const dispatch = useAppDispatch()
@@ -35,4 +36,12 @@ export function useKeyboardShortcuts(): void {
 
     return unsubRefresh
   }, [dispatch, repoRoot])
+
+  useEffect(() => {
+    const unsubSettings = window.api.onShortcutOpenSettings(() => {
+      dispatch(openSettings())
+    })
+
+    return unsubSettings
+  }, [dispatch])
 }

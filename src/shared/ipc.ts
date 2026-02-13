@@ -15,6 +15,11 @@ export const IPC_CHANNELS = {
   WATCHER_STATUS_CHANGED: 'watcher.statusChanged',
   SHORTCUT_OPEN_REPO: 'shortcut.openRepo',
   SHORTCUT_REFRESH: 'shortcut.refresh',
+  SHORTCUT_OPEN_SETTINGS: 'shortcut.openSettings',
+  SETTINGS_GET_API_KEY: 'settings.getApiKey',
+  SETTINGS_SET_API_KEY: 'settings.setApiKey',
+  SETTINGS_HAS_API_KEY: 'settings.hasApiKey',
+  SETTINGS_CLEAR_API_KEY: 'settings.clearApiKey',
 } as const
 
 export type RepoOpenResult = {
@@ -37,4 +42,9 @@ export type DiffyApi = {
   onStatusChanged: (callback: () => void) => () => void
   onShortcutOpenRepo: (callback: () => void) => () => void
   onShortcutRefresh: (callback: () => void) => () => void
+  onShortcutOpenSettings: (callback: () => void) => () => void
+  getApiKey: () => Promise<Result<string>>
+  setApiKey: (key: string) => Promise<Result<void>>
+  hasApiKey: () => Promise<Result<boolean>>
+  clearApiKey: () => Promise<Result<void>>
 }
