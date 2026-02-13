@@ -1,0 +1,30 @@
+appId: com.diffy.app
+productName: Diffy
+directories:
+  buildResources: resources
+  output: dist
+files:
+  - out/**/*
+  - "!src/**"
+  - "!docs/**"
+  - "!e2e/**"
+  - "!electron.vite.config.*"
+  - "!tsconfig*"
+  - "!eslint*"
+  - "!vitest*"
+  - "!playwright*"
+  - "!.prettierrc*"
+  - "!.editorconfig"
+mac:
+  target:
+    - dmg
+    - dir
+  category: public.app-category.developer-tools
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
