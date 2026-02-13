@@ -12,6 +12,7 @@ export default tseslint.config(
       'node_modules/**',
       '.vite/**',
       'e2e/**',
+      '**/monacoeditorwork/**',
       '*.config.ts',
       '*.config.mjs',
     ],

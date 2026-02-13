@@ -1,0 +1,20 @@
+.container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.message {
+  font-size: var(--font-size-lg);
+}
+
+.path {
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}

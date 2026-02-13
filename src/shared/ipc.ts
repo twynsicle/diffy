@@ -1,4 +1,4 @@
-import type { RepoStatus, Result } from './types'
+import type { DiffContent, DiffRequest, RepoStatus, Result } from './types'
 
 export const IPC_CHANNELS = {
   REPO_GET_LAST: 'repo.getLast',
@@ -9,7 +9,12 @@ export const IPC_CHANNELS = {
   GIT_UNSTAGE_FILE: 'git.unstageFile',
   GIT_STAGE_ALL: 'git.stageAll',
   GIT_UNSTAGE_ALL: 'git.unstageAll',
+  GIT_GET_DIFF_CONTENT: 'git.getDiffContent',
+  GIT_DISCARD_FILE: 'git.discardFile',
+  GIT_DELETE_FILE: 'git.deleteFile',
   WATCHER_STATUS_CHANGED: 'watcher.statusChanged',
+  SHORTCUT_OPEN_REPO: 'shortcut.openRepo',
+  SHORTCUT_REFRESH: 'shortcut.refresh',
 } as const
 
 export type RepoOpenResult = {
@@ -26,5 +31,10 @@ export type DiffyApi = {
   unstageFile: (path: string) => Promise<Result<void>>
   stageAll: () => Promise<Result<void>>
   unstageAll: () => Promise<Result<void>>
+  getDiffContent: (request: DiffRequest) => Promise<Result<DiffContent>>
+  discardFile: (path: string) => Promise<Result<void>>
+  deleteFile: (path: string) => Promise<Result<void>>
   onStatusChanged: (callback: () => void) => () => void
+  onShortcutOpenRepo: (callback: () => void) => () => void
+  onShortcutRefresh: (callback: () => void) => () => void
 }

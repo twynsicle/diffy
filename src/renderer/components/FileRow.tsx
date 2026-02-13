@@ -9,9 +9,10 @@ import styles from './FileRow.module.css'
 export type FileRowProps = {
   files: FileChange[]
   selectedPath?: string
-  onSelect: (path: string, section: Section) => void
+  onSelect: (path: string, section: Section, origPath?: string) => void
   onAction: (path: string) => void
   actionLabel: string
+  onContextMenu?: (file: FileChange, x: number, y: number) => void
 }
 
 function badgeClass(code: string | undefined): string {
@@ -38,6 +39,7 @@ export function FileRow({
   onSelect,
   onAction,
   actionLabel,
+  onContextMenu,
 }: FileRowProps & {
   index: number
   style: CSSProperties
@@ -59,7 +61,11 @@ export function FileRow({
     <div
       className={rowClass}
       style={style}
-      onClick={() => { onSelect(file.path, file.section) }}
+      onClick={() => { onSelect(file.path, file.section, file.origPath) }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        onContextMenu?.(file, e.clientX, e.clientY)
+      }}
       role="option"
       aria-selected={isSelected}
     >

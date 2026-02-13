@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
-import { refreshStatus } from '../store/changes-slice'
+import { refreshStatus, selectRefreshing } from '../store/changes-slice'
 import {
   openRepo,
   selectRepoDisplayName,
@@ -15,6 +15,7 @@ export function TopBar(): ReactElement {
   const dispatch = useAppDispatch()
   const repoRoot = useAppSelector(selectRepoRoot)
   const displayName = useAppSelector(selectRepoDisplayName)
+  const refreshing = useAppSelector(selectRefreshing)
 
   const handleOpen = async (): Promise<void> => {
     const folderPath = await window.api.selectFolder()
@@ -35,7 +36,7 @@ export function TopBar(): ReactElement {
   return (
     <div className={styles.topBar}>
       <div className={styles.trafficLightSpacer} />
-      <div className={styles.repoName}>
+      <div className={styles.repoName} title={repoRoot ?? undefined}>
         {displayName || 'Diffy'}
       </div>
       <div className={styles.actions}>
@@ -44,7 +45,8 @@ export function TopBar(): ReactElement {
         </button>
         {repoRoot && (
           <button className={styles.button} onClick={handleRefresh} type="button">
-            Refresh
+            <span className={refreshing ? styles.spinner : ''}>↻</span>
+            {' '}Refresh
           </button>
         )}
       </div>

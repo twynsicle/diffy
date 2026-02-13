@@ -1,7 +1,8 @@
 import { join } from 'node:path'
 
-import { BrowserWindow, app } from 'electron'
+import { BrowserWindow, Menu, app } from 'electron'
 
+import { buildAppMenu } from './app-menu'
 import { cleanup, registerIpcHandlers } from './ipc-handlers'
 
 function createWindow(): BrowserWindow {
@@ -33,6 +34,7 @@ function createWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(() => {
+  Menu.setApplicationMenu(buildAppMenu())
   const mainWindow = createWindow()
   registerIpcHandlers(mainWindow)
 

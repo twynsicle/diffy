@@ -17,6 +17,19 @@ export type RepoStatus = {
   unstaged: FileChange[]
 }
 
+export type DiffRequest = {
+  path: string
+  section: Section
+  origPath?: string
+}
+
+export type DiffContent = {
+  original: string
+  modified: string
+  language: string
+  isBinary: boolean
+}
+
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }

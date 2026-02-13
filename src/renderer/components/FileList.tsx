@@ -13,10 +13,11 @@ const ROW_HEIGHT = 28
 type FileListProps = {
   files: FileChange[]
   selectedPath?: string
-  onSelect: (path: string, section: Section) => void
+  onSelect: (path: string, section: Section, origPath?: string) => void
   onAction: (path: string) => void
   actionLabel: string
   emptyMessage: string
+  onContextMenu?: (file: FileChange, x: number, y: number) => void
 }
 
 export function FileList({
@@ -26,6 +27,7 @@ export function FileList({
   onAction,
   actionLabel,
   emptyMessage,
+  onContextMenu,
 }: FileListProps): ReactElement {
   const rowProps: FileRowProps = useMemo(
     () => ({
@@ -34,8 +36,9 @@ export function FileList({
       onSelect,
       onAction,
       actionLabel,
+      onContextMenu,
     }),
-    [files, selectedPath, onSelect, onAction, actionLabel],
+    [files, selectedPath, onSelect, onAction, actionLabel, onContextMenu],
   )
 
   if (files.length === 0) {

@@ -4,17 +4,21 @@ import type { FileChange, Section } from '@shared/types'
 
 import type { RootState } from '.'
 
+type Selection = { path: string; section: Section; origPath?: string }
+
 type ChangesState = {
   staged: FileChange[]
   unstaged: FileChange[]
-  selected?: { path: string; section: Section }
+  selected?: Selection
   statusUpdatedAt: number
+  refreshing: boolean
 }
 
 const initialState: ChangesState = {
   staged: [],
   unstaged: [],
   statusUpdatedAt: 0,
+  refreshing: false,
 }
 
 export const refreshStatus = createAsyncThunk<
@@ -73,11 +77,33 @@ export const unstageAll = createAsyncThunk<undefined, undefined, { rejectValue: 
   },
 )
 
+export const discardFile = createAsyncThunk<undefined, string, { rejectValue: string }>(
+  'changes/discardFile',
+  async (path, { rejectWithValue }) => {
+    const result = await window.api.discardFile(path)
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+    return undefined
+  },
+)
+
+export const deleteFile = createAsyncThunk<undefined, string, { rejectValue: string }>(
+  'changes/deleteFile',
+  async (path, { rejectWithValue }) => {
+    const result = await window.api.deleteFile(path)
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+    return undefined
+  },
+)
+
 const changesSlice = createSlice({
   name: 'changes',
   initialState,
   reducers: {
-    selectFile(state, action: { payload: { path: string; section: Section } }) {
+    selectFile(state, action: { payload: Selection }) {
       state.selected = action.payload
     },
     clearSelection(state) {
@@ -85,7 +111,14 @@ const changesSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    builder.addCase(refreshStatus.pending, (state) => {
+      state.refreshing = true
+    })
+    builder.addCase(refreshStatus.rejected, (state) => {
+      state.refreshing = false
+    })
     builder.addCase(refreshStatus.fulfilled, (state, action) => {
+      state.refreshing = false
       state.staged = action.payload.staged
       state.unstaged = action.payload.unstaged
       state.statusUpdatedAt = Date.now()
@@ -128,6 +161,5 @@ export const changesReducer = changesSlice.reducer
 
 export const selectStaged = (state: RootState): FileChange[] => state.changes.staged
 export const selectUnstaged = (state: RootState): FileChange[] => state.changes.unstaged
-export const selectSelected = (
-  state: RootState,
-): { path: string; section: Section } | undefined => state.changes.selected
+export const selectSelected = (state: RootState): Selection | undefined => state.changes.selected
+export const selectRefreshing = (state: RootState): boolean => state.changes.refreshing

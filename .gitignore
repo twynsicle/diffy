@@ -5,3 +5,4 @@ out/
 .env
 *.dmg
 .DS_Store
+**/monacoeditorwork/

@@ -1,11 +1,27 @@
 .pane {
-  width: 300px;
-  min-width: 240px;
+  position: relative;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
   overflow: hidden;
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--accent);
+  opacity: 0.4;
 }
 
 .section {

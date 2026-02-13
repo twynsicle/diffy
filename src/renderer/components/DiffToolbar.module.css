@@ -1,0 +1,64 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.fileInfo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.filePath {
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sectionBadge {
+  font-size: 11px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--spacing-xs);
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.button {
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--spacing-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.active:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
