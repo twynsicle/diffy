@@ -14,6 +14,7 @@ type NarrativeState = {
   generating: boolean
   generateError: string | null
   streamText: string
+  activeChapterId: string | null
 }
 
 const initialState: NarrativeState = {
@@ -26,6 +27,7 @@ const initialState: NarrativeState = {
   generating: false,
   generateError: null,
   streamText: '',
+  activeChapterId: null,
 }
 
 export const checkGhInstalled = createAsyncThunk<boolean, undefined, { rejectValue: string }>(
@@ -77,13 +79,18 @@ const narrativeSlice = createSlice({
       state.generating = false
       state.generateError = null
       state.streamText = ''
+      state.activeChapterId = null
     },
     appendStreamText(state, action: PayloadAction<string>) {
       state.streamText += action.payload
     },
+    setActiveChapter(state, action: PayloadAction<string | null>) {
+      state.activeChapterId = action.payload
+    },
     setReview(state, action: PayloadAction<NarrativeReview>) {
       state.review = action.payload
       state.generating = false
+      state.activeChapterId = action.payload.chapters[0]?.id ?? null
     },
     setGenerateError(state, action: PayloadAction<string>) {
       state.generateError = action.payload
@@ -93,6 +100,7 @@ const narrativeSlice = createSlice({
       state.review = null
       state.generateError = null
       state.streamText = ''
+      state.activeChapterId = null
     },
   },
   extraReducers: (builder) => {
@@ -122,6 +130,7 @@ const narrativeSlice = createSlice({
       state.generateError = null
       state.review = null
       state.streamText = ''
+      state.activeChapterId = null
     })
     builder.addCase(startNarrativeGeneration.rejected, (state, action) => {
       state.generating = false
@@ -130,8 +139,15 @@ const narrativeSlice = createSlice({
   },
 })
 
-export const { setPrUrl, clearPr, appendStreamText, setReview, setGenerateError, clearReview } =
-  narrativeSlice.actions
+export const {
+  setPrUrl,
+  clearPr,
+  appendStreamText,
+  setActiveChapter,
+  setReview,
+  setGenerateError,
+  clearReview,
+} = narrativeSlice.actions
 export const narrativeReducer = narrativeSlice.reducer
 
 export const selectPrUrl = (state: RootState): string => state.narrative.prUrl
@@ -143,3 +159,11 @@ export const selectReview = (state: RootState): NarrativeReview | null => state.
 export const selectGenerating = (state: RootState): boolean => state.narrative.generating
 export const selectGenerateError = (state: RootState): string | null => state.narrative.generateError
 export const selectStreamText = (state: RootState): string => state.narrative.streamText
+export const selectActiveChapterId = (state: RootState): string | null => state.narrative.activeChapterId
+export const selectChapterList = (state: RootState): { id: string; title: string }[] =>
+  state.narrative.review?.chapters.map((ch) => ({ id: ch.id, title: ch.title })) ?? []
+export const selectActiveChapterIndex = (state: RootState): number => {
+  const { review, activeChapterId } = state.narrative
+  if (!review || !activeChapterId) return -1
+  return review.chapters.findIndex((ch) => ch.id === activeChapterId)
+}

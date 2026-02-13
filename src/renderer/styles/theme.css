@@ -28,4 +28,9 @@
   --radius-md: 6px;
   --radius-lg: 8px;
   --titlebar-height: 38px;
+  --diff-add-bg: rgba(166, 227, 161, 0.1);
+  --diff-remove-bg: rgba(243, 139, 168, 0.1);
+  --diff-add-text: #a6e3a1;
+  --diff-remove-text: #f38ba8;
+  --bg-chapter: #1e1e30;
 }

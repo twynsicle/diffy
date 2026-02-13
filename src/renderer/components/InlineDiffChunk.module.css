@@ -1,0 +1,76 @@
+.chunk {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.filename {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--spacing-xs);
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.body {
+  margin: 0;
+  padding: var(--spacing-sm) 0;
+  background: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.body code {
+  display: block;
+}
+
+.line {
+  display: block;
+  padding: 0 var(--spacing-md);
+  white-space: pre;
+}
+
+.addLine {
+  composes: line;
+  background: var(--diff-add-bg);
+  color: var(--diff-add-text);
+}
+
+.removeLine {
+  composes: line;
+  background: var(--diff-remove-bg);
+  color: var(--diff-remove-text);
+}
+
+.hunkHeader {
+  composes: line;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.contextLine {
+  composes: line;
+  color: var(--text-secondary);
+}

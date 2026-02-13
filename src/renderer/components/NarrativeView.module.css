@@ -1,0 +1,14 @@
+.scrollContainer {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}

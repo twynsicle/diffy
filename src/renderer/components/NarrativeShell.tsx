@@ -17,7 +17,10 @@ import {
 } from '../store/narrative-slice'
 import { addToast } from '../store/ui-slice'
 
+import { ChapterNav } from './ChapterNav'
 import styles from './NarrativeShell.module.css'
+import { NarrativeToolbar } from './NarrativeToolbar'
+import { NarrativeView } from './NarrativeView'
 import { PrInput } from './PrInput'
 import { PrSummary } from './PrSummary'
 
@@ -69,67 +72,58 @@ export function NarrativeShell(): ReactElement {
     ? '...' + streamText.slice(-STREAM_PREVIEW_CHARS)
     : streamText
 
+  if (review) {
+    return (
+      <div className={styles.shell}>
+        <div className={styles.reviewLayout}>
+          <NarrativeToolbar onRegenerate={handleRegenerate} />
+          <div className={styles.reviewBody}>
+            <NarrativeView />
+            <ChapterNav />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.shell}>
-      {ghInstalled === false && (
-        <div className={styles.warning}>
-          GitHub CLI (gh) not found. Install it from{' '}
-          <code>https://cli.github.com</code> and run <code>gh auth login</code>.
-        </div>
-      )}
-      <PrInput />
-      {prError && <div className={styles.error}>{prError}</div>}
-      {prData && <PrSummary data={prData} />}
+      <div className={styles.setupPhase}>
+        {ghInstalled === false && (
+          <div className={styles.warning}>
+            GitHub CLI (gh) not found. Install it from{' '}
+            <code>https://cli.github.com</code> and run <code>gh auth login</code>.
+          </div>
+        )}
+        <PrInput />
+        {prError && <div className={styles.error}>{prError}</div>}
+        {prData && <PrSummary data={prData} />}
 
-      {prData && !generating && !review && !generateError && (
-        <button className={styles.generateBtn} onClick={handleGenerate}>
-          Generate Review
-        </button>
-      )}
-
-      {generating && (
-        <div className={styles.loadingContainer}>
-          <div className={styles.spinner} />
-          <span className={styles.loadingLabel}>Generating narrative review…</span>
-          {streamPreview && (
-            <pre className={styles.streamPreview}>{streamPreview}</pre>
-          )}
-        </div>
-      )}
-
-      {generateError && (
-        <div className={styles.generateError}>
-          <span>{generateError}</span>
-          <button className={styles.retryBtn} onClick={handleRetry}>
-            Retry
+        {prData && !generating && !generateError && (
+          <button className={styles.generateBtn} onClick={handleGenerate}>
+            Generate Review
           </button>
-        </div>
-      )}
+        )}
 
-      {review && (
-        <div className={styles.reviewContainer}>
-          <div className={styles.reviewHeader}>
-            <h2 className={styles.reviewTitle}>Narrative Review</h2>
-            <button className={styles.regenerateBtn} onClick={handleRegenerate}>
-              Regenerate
+        {generating && (
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner} />
+            <span className={styles.loadingLabel}>Generating narrative review…</span>
+            {streamPreview && (
+              <pre className={styles.streamPreview}>{streamPreview}</pre>
+            )}
+          </div>
+        )}
+
+        {generateError && (
+          <div className={styles.generateError}>
+            <span>{generateError}</span>
+            <button className={styles.retryBtn} onClick={handleRetry}>
+              Retry
             </button>
           </div>
-          <p className={styles.overviewSummary}>{review.overviewSummary}</p>
-          <ul className={styles.chapterList}>
-            {review.chapters.map((chapter) => (
-              <li key={chapter.id} className={styles.chapterItem}>
-                <h3 className={styles.chapterTitle}>{chapter.title}</h3>
-                <p className={styles.chapterSummary}>{chapter.summary}</p>
-                {chapter.diffChunks.length > 0 && (
-                  <span className={styles.chunkCount}>
-                    {chapter.diffChunks.length} code {chapter.diffChunks.length === 1 ? 'snippet' : 'snippets'}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

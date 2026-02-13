@@ -1,0 +1,37 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--bg-chapter);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  scroll-margin-top: var(--spacing-md);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+  font-weight: 600;
+}
