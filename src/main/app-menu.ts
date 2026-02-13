@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu } from 'electron'
+import { BrowserWindow, Menu, app } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 
@@ -8,6 +8,14 @@ export function buildAppMenu(): Menu {
       label: 'Diffy',
       submenu: [
         { role: 'about' },
+        {
+          label: 'Settings...',
+          accelerator: 'CmdOrCtrl+,',
+          click: (): void => {
+            const win = BrowserWindow.getFocusedWindow()
+            win?.webContents.send(IPC_CHANNELS.SHORTCUT_OPEN_SETTINGS)
+          },
+        },
         { type: 'separator' },
         { role: 'hide' },
         { role: 'hideOthers' },
@@ -49,6 +57,18 @@ export function buildAppMenu(): Menu {
         { role: 'selectAll' },
       ],
     },
+    ...(!app.isPackaged
+      ? [
+          {
+            label: 'View',
+            submenu: [
+              { role: 'toggleDevTools' as const },
+              { role: 'reload' as const },
+              { role: 'forceReload' as const },
+            ],
+          },
+        ]
+      : []),
     {
       label: 'Window',
       submenu: [

@@ -1,0 +1,13 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.35rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.4;
+}

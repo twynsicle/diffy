@@ -1,4 +1,4 @@
-import type { DiffContent, DiffRequest, RepoStatus, Result } from './types'
+import type { AiProvider, DiffContent, DiffRequest, NarrativeReview, PrData, PrReference, RepoStatus, Result } from './types'
 
 export const IPC_CHANNELS = {
   REPO_GET_LAST: 'repo.getLast',
@@ -15,6 +15,28 @@ export const IPC_CHANNELS = {
   WATCHER_STATUS_CHANGED: 'watcher.statusChanged',
   SHORTCUT_OPEN_REPO: 'shortcut.openRepo',
   SHORTCUT_REFRESH: 'shortcut.refresh',
+  SHORTCUT_OPEN_SETTINGS: 'shortcut.openSettings',
+  SETTINGS_GET_API_KEY: 'settings.getApiKey',
+  SETTINGS_SET_API_KEY: 'settings.setApiKey',
+  SETTINGS_HAS_API_KEY: 'settings.hasApiKey',
+  SETTINGS_CLEAR_API_KEY: 'settings.clearApiKey',
+  GH_CHECK_INSTALLED: 'gh.checkInstalled',
+  GH_FETCH_PR: 'gh.fetchPr',
+  LLM_GENERATE_NARRATIVE: 'llm.generateNarrative',
+  LLM_STREAM_CHUNK: 'llm.streamChunk',
+  LLM_STREAM_COMPLETE: 'llm.streamComplete',
+  LLM_STREAM_ERROR: 'llm.streamError',
+  LLM_CANCEL_GENERATION: 'llm.cancelGeneration',
+  LLM_TRUNCATION_WARNING: 'llm.truncationWarning',
+  SETTINGS_GET_LAST_PR_URL: 'settings.getLastPrUrl',
+  SETTINGS_SET_LAST_PR_URL: 'settings.setLastPrUrl',
+  SETTINGS_GET_EXCLUDED_PATTERNS: 'settings.getExcludedPatterns',
+  SETTINGS_SET_EXCLUDED_PATTERNS: 'settings.setExcludedPatterns',
+  SETTINGS_GET_AI_PROVIDER: 'settings.getAiProvider',
+  SETTINGS_SET_AI_PROVIDER: 'settings.setAiProvider',
+  SETTINGS_GET_CLI_MODEL: 'settings.getCliModel',
+  SETTINGS_SET_CLI_MODEL: 'settings.setCliModel',
+  CLAUDE_CLI_CHECK_INSTALLED: 'claudeCli.checkInstalled',
 } as const
 
 export type RepoOpenResult = {
@@ -37,4 +59,26 @@ export type DiffyApi = {
   onStatusChanged: (callback: () => void) => () => void
   onShortcutOpenRepo: (callback: () => void) => () => void
   onShortcutRefresh: (callback: () => void) => () => void
+  onShortcutOpenSettings: (callback: () => void) => () => void
+  getApiKey: () => Promise<Result<string>>
+  setApiKey: (key: string) => Promise<Result<void>>
+  hasApiKey: () => Promise<Result<boolean>>
+  clearApiKey: () => Promise<Result<void>>
+  checkGhInstalled: () => Promise<Result<boolean>>
+  fetchPr: (ref: PrReference) => Promise<Result<PrData>>
+  generateNarrative: (prData: PrData) => Promise<Result<string>>
+  onNarrativeStreamChunk: (callback: (chunk: string) => void) => () => void
+  onNarrativeStreamComplete: (callback: (review: NarrativeReview) => void) => () => void
+  onNarrativeStreamError: (callback: (error: string) => void) => () => void
+  cancelGeneration: () => Promise<Result<void>>
+  getLastPrUrl: () => Promise<string | null>
+  setLastPrUrl: (url: string) => Promise<Result<void>>
+  onNarrativeTruncationWarning: (callback: () => void) => () => void
+  getExcludedPatterns: () => Promise<Result<string[]>>
+  setExcludedPatterns: (patterns: string[]) => Promise<Result<void>>
+  getAiProvider: () => Promise<Result<AiProvider>>
+  setAiProvider: (provider: AiProvider) => Promise<Result<void>>
+  getCliModel: () => Promise<Result<string>>
+  setCliModel: (model: string) => Promise<Result<void>>
+  checkClaudeCliInstalled: () => Promise<Result<boolean>>
 }

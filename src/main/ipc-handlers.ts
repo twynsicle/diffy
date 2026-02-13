@@ -4,16 +4,39 @@ import { basename, join } from 'node:path'
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
-import type { DiffContent, DiffRequest, Result } from '@shared/types'
+import type { DiffContent, DiffRequest, PrData, PrReference, Result } from '@shared/types'
 
+import type { AiProvider } from '@shared/types'
+
+import { generateNarrative } from './anthropic-client'
+import { checkClaudeCliInstalled, generateNarrativeCli } from './claude-cli-client'
 import { isBinary } from './detect-binary'
+import { checkGhInstalled, fetchPrData } from './gh-runner'
 import { startWatching, stopWatching } from './file-watcher'
 import { getRepoRoot, isPathInsideRepo, runGit } from './git-runner'
 import { detectLanguage } from './language-map'
 import { parseStatus } from './parse-status'
-import { getLastRepoPath, setLastRepoPath } from './persisted-state'
+import {
+  getAiProvider,
+  getCliModel,
+  getExcludedFilePatterns,
+  getLastPrUrl,
+  getLastRepoPath,
+  setAiProvider,
+  setCliModel,
+  setExcludedFilePatterns,
+  setLastPrUrl,
+  setLastRepoPath,
+} from './persisted-state'
+import {
+  clearApiKey,
+  getApiKey,
+  hasApiKey,
+  setApiKey,
+} from './secure-storage'
 
 let currentRepoRoot: string | null = null
+const activeGenerations = new Map<string, AbortController>()
 
 async function isTracked(repoRoot: string, filePath: string): Promise<boolean> {
   const result = await runGit({
@@ -240,9 +263,204 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
     return { ok: true, data: undefined }
   })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_API_KEY, () => {
+    try {
+      return { ok: true, data: getApiKey() }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to get API key'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_API_KEY, (_event, key: string) => {
+    if (typeof key !== 'string' || key.trim().length === 0) {
+      return { ok: false, error: 'API key must be a non-empty string' }
+    }
+    try {
+      setApiKey(key.trim())
+      return { ok: true, data: undefined }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save API key'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_HAS_API_KEY, () => {
+    try {
+      return { ok: true, data: hasApiKey() }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to check API key'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_CLEAR_API_KEY, () => {
+    try {
+      clearApiKey()
+      return { ok: true, data: undefined }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to clear API key'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GH_CHECK_INSTALLED, async () => {
+    return checkGhInstalled()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GH_FETCH_PR, async (_event, ref: unknown) => {
+    if (
+      typeof ref !== 'object' ||
+      ref === null ||
+      typeof (ref as PrReference).owner !== 'string' ||
+      typeof (ref as PrReference).repo !== 'string' ||
+      typeof (ref as PrReference).number !== 'number'
+    ) {
+      return { ok: false, error: 'Invalid PR reference' } satisfies Result<never>
+    }
+    return fetchPrData(ref as PrReference)
+  })
+
+  let narrativeRequestId = 0
+
+  ipcMain.handle(IPC_CHANNELS.LLM_GENERATE_NARRATIVE, (_event, prData: unknown) => {
+    if (
+      typeof prData !== 'object' ||
+      prData === null ||
+      typeof (prData as PrData).title !== 'string' ||
+      typeof (prData as PrData).diff !== 'string' ||
+      !Array.isArray((prData as PrData).files)
+    ) {
+      return { ok: false, error: 'Invalid PR data' } satisfies Result<never>
+    }
+
+    const provider = getAiProvider()
+
+    if (provider === 'api') {
+      const apiKey = getApiKey()
+      if (!apiKey) {
+        return { ok: false, error: 'No API key configured' } satisfies Result<never>
+      }
+    }
+
+    narrativeRequestId += 1
+    const requestId = String(narrativeRequestId)
+
+    const controller = new AbortController()
+    activeGenerations.set(requestId, controller)
+
+    void (async (): Promise<void> => {
+      const onChunk = (chunk: string): void => {
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, chunk)
+      }
+
+      const result = provider === 'cli'
+        ? await generateNarrativeCli(
+          prData as PrData,
+          onChunk,
+          controller.signal,
+          getCliModel() || undefined,
+        )
+        : await generateNarrative(
+          prData as PrData,
+          getApiKey(),
+          onChunk,
+          controller.signal,
+        )
+
+      activeGenerations.delete(requestId)
+
+      if (result.wasTruncated) {
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_TRUNCATION_WARNING)
+      }
+
+      if (result.ok) {
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_COMPLETE, result.data)
+      } else {
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_ERROR, result.error)
+      }
+    })()
+
+    return { ok: true, data: requestId } satisfies Result<string>
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LLM_CANCEL_GENERATION, () => {
+    for (const controller of activeGenerations.values()) {
+      controller.abort()
+    }
+    activeGenerations.clear()
+    return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_LAST_PR_URL, () => {
+    return getLastPrUrl()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_LAST_PR_URL, (_event, url: unknown) => {
+    if (typeof url !== 'string' || url.trim().length === 0) {
+      return { ok: false, error: 'URL must be a non-empty string' } satisfies Result<never>
+    }
+    setLastPrUrl(url.trim())
+    return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_AI_PROVIDER, () => {
+    return { ok: true, data: getAiProvider() }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_AI_PROVIDER, (_event, provider: unknown) => {
+    if (provider !== 'api' && provider !== 'cli') {
+      return { ok: false, error: 'Invalid AI provider' } satisfies Result<never>
+    }
+    setAiProvider(provider as AiProvider)
+    return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_CLI_MODEL, () => {
+    return { ok: true, data: getCliModel() }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_CLI_MODEL, (_event, model: unknown) => {
+    if (typeof model !== 'string') {
+      return { ok: false, error: 'Model must be a string' } satisfies Result<never>
+    }
+    setCliModel(model.trim())
+    return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED, async () => {
+    return checkClaudeCliInstalled()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_EXCLUDED_PATTERNS, () => {
+    try {
+      return { ok: true, data: getExcludedFilePatterns() }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to get excluded patterns'
+      return { ok: false, error: msg }
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_EXCLUDED_PATTERNS, (_event, patterns: unknown) => {
+    if (!Array.isArray(patterns) || !patterns.every((p) => typeof p === 'string')) {
+      return { ok: false, error: 'Patterns must be an array of strings' } satisfies Result<never>
+    }
+    try {
+      setExcludedFilePatterns(patterns)
+      return { ok: true, data: undefined }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save excluded patterns'
+      return { ok: false, error: msg }
+    }
+  })
 }
 
 export function cleanup(): void {
   stopWatching()
+  for (const controller of activeGenerations.values()) {
+    controller.abort()
+  }
+  activeGenerations.clear()
   currentRepoRoot = null
 }

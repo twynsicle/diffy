@@ -3,8 +3,14 @@ import { join } from 'node:path'
 
 import { app } from 'electron'
 
+import type { AiProvider } from '@shared/types'
+
 type PersistedState = {
   lastRepoPath?: string
+  lastPrUrl?: string
+  excludedFilePatterns?: string[]
+  aiProvider?: AiProvider
+  cliModel?: string
 }
 
 function getFilePath(): string {
@@ -34,4 +40,36 @@ export function getLastRepoPath(): string | null {
 
 export function setLastRepoPath(repoPath: string): void {
   write({ ...read(), lastRepoPath: repoPath })
+}
+
+export function getLastPrUrl(): string | null {
+  return read().lastPrUrl ?? null
+}
+
+export function setLastPrUrl(url: string): void {
+  write({ ...read(), lastPrUrl: url })
+}
+
+export function getExcludedFilePatterns(): string[] {
+  return read().excludedFilePatterns ?? []
+}
+
+export function setExcludedFilePatterns(patterns: string[]): void {
+  write({ ...read(), excludedFilePatterns: patterns })
+}
+
+export function getAiProvider(): AiProvider {
+  return read().aiProvider ?? 'api'
+}
+
+export function setAiProvider(provider: AiProvider): void {
+  write({ ...read(), aiProvider: provider })
+}
+
+export function getCliModel(): string {
+  return read().cliModel ?? ''
+}
+
+export function setCliModel(model: string): void {
+  write({ ...read(), cliModel: model })
 }

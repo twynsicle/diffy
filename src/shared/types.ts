@@ -1,3 +1,5 @@
+export type AiProvider = 'api' | 'cli'
+
 export type Section = 'staged' | 'unstaged'
 
 export type FileChange = {
@@ -33,3 +35,58 @@ export type DiffContent = {
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }
+
+export type AppMode = 'diff-review' | 'narrative-review'
+
+export type PrReference = {
+  owner: string
+  repo: string
+  number: number
+}
+
+export type PrFileChange = {
+  filename: string
+  status: string
+  additions: number
+  deletions: number
+  patch?: string
+}
+
+export type PrData = {
+  title: string
+  body: string
+  author: string
+  baseRefName: string
+  headRefName: string
+  files: PrFileChange[]
+  diff: string
+}
+
+export type DiffChunk = {
+  filename: string
+  language: string
+  startLine: number
+  content: string
+}
+
+export type InsightType = 'context' | 'rationale' | 'highlight' | 'reference'
+
+export type Insight = {
+  type: InsightType
+  text: string
+}
+
+export const SUMMARY_SECTION_ID = '__summary__'
+
+export type NarrativeChapter = {
+  id: string
+  title: string
+  insights: Insight[]
+  diffChunks: DiffChunk[]
+}
+
+export type NarrativeReview = {
+  prTitle: string
+  overviewSummary: string
+  chapters: NarrativeChapter[]
+}

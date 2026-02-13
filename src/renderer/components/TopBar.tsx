@@ -1,13 +1,16 @@
 import type { ReactElement } from 'react'
 
+import type { AppMode } from '../../shared/types'
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
 import { refreshStatus, selectRefreshing } from '../store/changes-slice'
+import { selectActiveMode, setMode } from '../store/mode-slice'
 import {
   openRepo,
   selectRepoDisplayName,
   selectRepoRoot,
 } from '../store/repo-slice'
+import { openSettings } from '../store/ui-slice'
 
 import styles from './TopBar.module.css'
 
@@ -16,6 +19,7 @@ export function TopBar(): ReactElement {
   const repoRoot = useAppSelector(selectRepoRoot)
   const displayName = useAppSelector(selectRepoDisplayName)
   const refreshing = useAppSelector(selectRefreshing)
+  const activeMode = useAppSelector(selectActiveMode)
 
   const handleOpen = async (): Promise<void> => {
     const folderPath = await window.api.selectFolder()
@@ -36,6 +40,18 @@ export function TopBar(): ReactElement {
   return (
     <div className={styles.topBar}>
       <div className={styles.trafficLightSpacer} />
+      <div className={styles.modeToggle}>
+        {(['diff-review', 'narrative-review'] as const).map((mode: AppMode) => (
+          <button
+            key={mode}
+            className={`${styles.modeButton} ${activeMode === mode ? styles.modeButtonActive : ''}`}
+            onClick={() => dispatch(setMode(mode))}
+            type="button"
+          >
+            {mode === 'diff-review' ? 'Diff Review' : 'Narrative Review'}
+          </button>
+        ))}
+      </div>
       <div className={styles.repoName} title={repoRoot ?? undefined}>
         {displayName || 'Diffy'}
       </div>
@@ -45,11 +61,19 @@ export function TopBar(): ReactElement {
         </button>
         {repoRoot && (
           <button className={styles.button} onClick={handleRefresh} type="button">
-            <span className={refreshing ? styles.spinner : ''}>↻</span>
+            <span className={`${styles.icon} ${refreshing ? styles.spinner : ''}`}>↻</span>
             {' '}Refresh
           </button>
         )}
       </div>
+      <button
+        className={`${styles.button} ${styles.settingsButton}`}
+        onClick={() => dispatch(openSettings())}
+        title="Settings (⌘,)"
+        type="button"
+      >
+        <span className={styles.icon}>⚙</span>
+      </button>
     </div>
   )
 }
