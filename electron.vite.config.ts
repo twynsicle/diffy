@@ -5,6 +5,7 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 
 export default defineConfig({
   main: {
+    build: { sourcemap: false },
     plugins: [externalizeDepsPlugin({ exclude: ['chokidar'] })],
     resolve: {
       alias: {
@@ -15,6 +16,7 @@ export default defineConfig({
     },
   },
   preload: {
+    build: { sourcemap: false },
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
@@ -24,6 +26,7 @@ export default defineConfig({
     },
   },
   renderer: {
+    build: { sourcemap: false },
     plugins: [react()],
     resolve: {
       alias: {

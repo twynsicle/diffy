@@ -2,6 +2,7 @@
   "name": "diffy",
   "version": "0.1.0",
   "description": "A lightweight macOS desktop diff reviewer for AI-generated changes",
+  "author": "Steven Lemon",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -11,8 +12,7 @@
     "test:e2e": "electron-vite build && playwright test",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "package": "electron-vite build && electron-builder --mac --dir",
-    "package:dmg": "electron-vite build && electron-builder --mac"
+    "package": "electron-vite build && electron-builder --mac"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

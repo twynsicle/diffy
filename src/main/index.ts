@@ -16,6 +16,7 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      devTools: !app.isPackaged,
       preload: join(__dirname, '../preload/index.js'),
     },
   })
