@@ -4,8 +4,9 @@ import { basename, join } from 'node:path'
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
-import type { DiffContent, DiffRequest, PrReference, Result } from '@shared/types'
+import type { DiffContent, DiffRequest, PrData, PrReference, Result } from '@shared/types'
 
+import { generateNarrative } from './anthropic-client'
 import { isBinary } from './detect-binary'
 import { checkGhInstalled, fetchPrData } from './gh-runner'
 import { startWatching, stopWatching } from './file-watcher'
@@ -304,6 +305,46 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       return { ok: false, error: 'Invalid PR reference' } satisfies Result<never>
     }
     return fetchPrData(ref as PrReference)
+  })
+
+  let narrativeRequestId = 0
+
+  ipcMain.handle(IPC_CHANNELS.LLM_GENERATE_NARRATIVE, (_event, prData: unknown) => {
+    if (
+      typeof prData !== 'object' ||
+      prData === null ||
+      typeof (prData as PrData).title !== 'string' ||
+      typeof (prData as PrData).diff !== 'string' ||
+      !Array.isArray((prData as PrData).files)
+    ) {
+      return { ok: false, error: 'Invalid PR data' } satisfies Result<never>
+    }
+
+    const apiKey = getApiKey()
+    if (!apiKey) {
+      return { ok: false, error: 'No API key configured' } satisfies Result<never>
+    }
+
+    narrativeRequestId += 1
+    const requestId = String(narrativeRequestId)
+
+    void (async (): Promise<void> => {
+      const result = await generateNarrative(
+        prData as PrData,
+        apiKey,
+        (chunk) => {
+          mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, chunk)
+        },
+      )
+
+      if (result.ok) {
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_COMPLETE, result.data)
+      } else {
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_ERROR, result.error)
+      }
+    })()
+
+    return { ok: true, data: requestId } satisfies Result<string>
   })
 }
 

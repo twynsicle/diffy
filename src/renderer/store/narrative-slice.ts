@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
-import type { PrData, PrReference } from '@shared/types'
+import type { NarrativeReview, PrData, PrReference } from '@shared/types'
 
 import type { RootState } from '.'
 
@@ -10,6 +10,10 @@ type NarrativeState = {
   prLoading: boolean
   prError: string | null
   ghInstalled: boolean | null
+  review: NarrativeReview | null
+  generating: boolean
+  generateError: string | null
+  streamText: string
 }
 
 const initialState: NarrativeState = {
@@ -18,6 +22,10 @@ const initialState: NarrativeState = {
   prLoading: false,
   prError: null,
   ghInstalled: null,
+  review: null,
+  generating: false,
+  generateError: null,
+  streamText: '',
 }
 
 export const checkGhInstalled = createAsyncThunk<boolean, undefined, { rejectValue: string }>(
@@ -42,6 +50,17 @@ export const fetchPr = createAsyncThunk<PrData, PrReference, { rejectValue: stri
   },
 )
 
+export const startNarrativeGeneration = createAsyncThunk<string, PrData, { rejectValue: string }>(
+  'narrative/startNarrativeGeneration',
+  async (prData, { rejectWithValue }) => {
+    const result = await window.api.generateNarrative(prData)
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+    return result.data
+  },
+)
+
 const narrativeSlice = createSlice({
   name: 'narrative',
   initialState,
@@ -54,6 +73,26 @@ const narrativeSlice = createSlice({
       state.prData = null
       state.prLoading = false
       state.prError = null
+      state.review = null
+      state.generating = false
+      state.generateError = null
+      state.streamText = ''
+    },
+    appendStreamText(state, action: PayloadAction<string>) {
+      state.streamText += action.payload
+    },
+    setReview(state, action: PayloadAction<NarrativeReview>) {
+      state.review = action.payload
+      state.generating = false
+    },
+    setGenerateError(state, action: PayloadAction<string>) {
+      state.generateError = action.payload
+      state.generating = false
+    },
+    clearReview(state) {
+      state.review = null
+      state.generateError = null
+      state.streamText = ''
     },
   },
   extraReducers: (builder) => {
@@ -77,10 +116,22 @@ const narrativeSlice = createSlice({
       state.prLoading = false
       state.prError = action.payload ?? action.error.message ?? 'Failed to fetch PR'
     })
+
+    builder.addCase(startNarrativeGeneration.pending, (state) => {
+      state.generating = true
+      state.generateError = null
+      state.review = null
+      state.streamText = ''
+    })
+    builder.addCase(startNarrativeGeneration.rejected, (state, action) => {
+      state.generating = false
+      state.generateError = action.payload ?? action.error.message ?? 'Failed to start generation'
+    })
   },
 })
 
-export const { setPrUrl, clearPr } = narrativeSlice.actions
+export const { setPrUrl, clearPr, appendStreamText, setReview, setGenerateError, clearReview } =
+  narrativeSlice.actions
 export const narrativeReducer = narrativeSlice.reducer
 
 export const selectPrUrl = (state: RootState): string => state.narrative.prUrl
@@ -88,3 +139,7 @@ export const selectPrData = (state: RootState): PrData | null => state.narrative
 export const selectPrLoading = (state: RootState): boolean => state.narrative.prLoading
 export const selectPrError = (state: RootState): string | null => state.narrative.prError
 export const selectGhInstalled = (state: RootState): boolean | null => state.narrative.ghInstalled
+export const selectReview = (state: RootState): NarrativeReview | null => state.narrative.review
+export const selectGenerating = (state: RootState): boolean => state.narrative.generating
+export const selectGenerateError = (state: RootState): string | null => state.narrative.generateError
+export const selectStreamText = (state: RootState): string => state.narrative.streamText

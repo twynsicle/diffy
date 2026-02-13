@@ -1,4 +1,4 @@
-import type { DiffContent, DiffRequest, PrData, PrReference, RepoStatus, Result } from './types'
+import type { DiffContent, DiffRequest, NarrativeReview, PrData, PrReference, RepoStatus, Result } from './types'
 
 export const IPC_CHANNELS = {
   REPO_GET_LAST: 'repo.getLast',
@@ -22,6 +22,10 @@ export const IPC_CHANNELS = {
   SETTINGS_CLEAR_API_KEY: 'settings.clearApiKey',
   GH_CHECK_INSTALLED: 'gh.checkInstalled',
   GH_FETCH_PR: 'gh.fetchPr',
+  LLM_GENERATE_NARRATIVE: 'llm.generateNarrative',
+  LLM_STREAM_CHUNK: 'llm.streamChunk',
+  LLM_STREAM_COMPLETE: 'llm.streamComplete',
+  LLM_STREAM_ERROR: 'llm.streamError',
 } as const
 
 export type RepoOpenResult = {
@@ -51,4 +55,8 @@ export type DiffyApi = {
   clearApiKey: () => Promise<Result<void>>
   checkGhInstalled: () => Promise<Result<boolean>>
   fetchPr: (ref: PrReference) => Promise<Result<PrData>>
+  generateNarrative: (prData: PrData) => Promise<Result<string>>
+  onNarrativeStreamChunk: (callback: (chunk: string) => void) => () => void
+  onNarrativeStreamComplete: (callback: (review: NarrativeReview) => void) => () => void
+  onNarrativeStreamError: (callback: (error: string) => void) => () => void
 }

@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type { DiffyApi } from '@shared/ipc'
-import type { DiffRequest, PrReference } from '@shared/types'
+import type { DiffRequest, NarrativeReview, PrData, PrReference } from '@shared/types'
 
 const api: DiffyApi = {
   getLastRepo: () => ipcRenderer.invoke(IPC_CHANNELS.REPO_GET_LAST),
@@ -59,6 +59,35 @@ const api: DiffyApi = {
   clearApiKey: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_CLEAR_API_KEY),
   checkGhInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.GH_CHECK_INSTALLED),
   fetchPr: (ref: PrReference) => ipcRenderer.invoke(IPC_CHANNELS.GH_FETCH_PR, ref),
+  generateNarrative: (prData: PrData) =>
+    ipcRenderer.invoke(IPC_CHANNELS.LLM_GENERATE_NARRATIVE, prData),
+  onNarrativeStreamChunk: (callback: (chunk: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, chunk: string): void => {
+      callback(chunk)
+    }
+    ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_CHUNK, listener)
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.LLM_STREAM_CHUNK, listener)
+    }
+  },
+  onNarrativeStreamComplete: (callback: (review: NarrativeReview) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, review: NarrativeReview): void => {
+      callback(review)
+    }
+    ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_COMPLETE, listener)
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.LLM_STREAM_COMPLETE, listener)
+    }
+  },
+  onNarrativeStreamError: (callback: (error: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, error: string): void => {
+      callback(error)
+    }
+    ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_ERROR, listener)
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.LLM_STREAM_ERROR, listener)
+    }
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

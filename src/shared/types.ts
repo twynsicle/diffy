@@ -59,3 +59,23 @@ export type PrData = {
   files: PrFileChange[]
   diff: string
 }
+
+export type DiffChunk = {
+  filename: string
+  language: string
+  startLine: number
+  content: string
+}
+
+export type NarrativeChapter = {
+  id: string
+  title: string
+  summary: string
+  diffChunks: DiffChunk[]
+}
+
+export type NarrativeReview = {
+  prTitle: string
+  overviewSummary: string
+  chapters: NarrativeChapter[]
+}
