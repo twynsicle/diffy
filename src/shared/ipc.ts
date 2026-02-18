@@ -69,13 +69,13 @@ export type DiffyApi = {
   checkGhInstalled: () => Promise<Result<boolean>>
   fetchPr: (ref: PrReference) => Promise<Result<PrData>>
   generateNarrative: (prData: PrData) => Promise<Result<string>>
-  onNarrativeStreamChunk: (callback: (chunk: string) => void) => () => void
-  onNarrativeStreamComplete: (callback: (review: NarrativeReview) => void) => () => void
-  onNarrativeStreamError: (callback: (error: string) => void) => () => void
-  cancelGeneration: () => Promise<Result<void>>
+  onNarrativeStreamChunk: (callback: (requestId: string, chunk: string) => void) => () => void
+  onNarrativeStreamComplete: (callback: (requestId: string, review: NarrativeReview) => void) => () => void
+  onNarrativeStreamError: (callback: (requestId: string, error: string) => void) => () => void
+  cancelGeneration: (requestId?: string) => Promise<Result<void>>
   getLastPrUrl: () => Promise<string | null>
   setLastPrUrl: (url: string) => Promise<Result<void>>
-  onNarrativeTruncationWarning: (callback: () => void) => () => void
+  onNarrativeTruncationWarning: (callback: (requestId: string) => void) => () => void
   getExcludedPatterns: () => Promise<Result<string[]>>
   setExcludedPatterns: (patterns: string[]) => Promise<Result<void>>
   getAiProvider: () => Promise<Result<AiProvider>>

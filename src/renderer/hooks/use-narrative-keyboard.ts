@@ -31,6 +31,7 @@ export function useNarrativeKeyboard(): void {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
       const goToChapter = (index: number): void => {
+        if (index < 0 || index >= chapters.length) return
         const id = chapters[index].id
         e.preventDefault()
         dispatch(setActiveChapter(id))

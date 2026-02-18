@@ -13,7 +13,10 @@ type NarrativeFileTreeProps = {
 }
 
 function prStatusToCode(status: string): string {
-  switch (status) {
+  // Normalize git status codes like "R100" or "C095" to just the letter
+  const normalized = /^[A-Z]\d+$/.test(status) ? status[0] : status
+
+  switch (normalized) {
     // GitHub API status strings
     case 'added':
       return 'A'
@@ -30,7 +33,7 @@ function prStatusToCode(status: string): string {
     case 'R':
     case 'C':
     case 'T':
-      return status
+      return normalized
     default:
       return '?'
   }

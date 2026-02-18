@@ -3,10 +3,11 @@ import type { ReactElement } from 'react'
 import type { AppMode } from '../../shared/types'
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
-import { refreshStatus, selectRefreshing } from '../store/changes-slice'
+import { useRepoActions } from '../hooks/use-repo-actions'
+import { selectRefreshing } from '../store/changes-slice'
+import { refreshStatus } from '../store/changes-slice'
 import { selectActiveMode, setMode } from '../store/mode-slice'
 import {
-  openRepo,
   selectRepoDisplayName,
   selectRepoRoot,
 } from '../store/repo-slice'
@@ -20,16 +21,7 @@ export function TopBar(): ReactElement {
   const displayName = useAppSelector(selectRepoDisplayName)
   const refreshing = useAppSelector(selectRefreshing)
   const activeMode = useAppSelector(selectActiveMode)
-
-  const handleOpen = async (): Promise<void> => {
-    const folderPath = await window.api.selectFolder()
-    if (folderPath) {
-      const result = await dispatch(openRepo(folderPath))
-      if (openRepo.fulfilled.match(result)) {
-        void dispatch(refreshStatus())
-      }
-    }
-  }
+  const { openAndRefresh } = useRepoActions()
 
   const handleRefresh = (): void => {
     if (repoRoot) {
@@ -56,7 +48,7 @@ export function TopBar(): ReactElement {
         {displayName || 'Diffy'}
       </div>
       <div className={styles.actions}>
-        <button className={styles.button} onClick={() => void handleOpen()} type="button">
+        <button className={styles.button} onClick={() => void openAndRefresh()} type="button">
           Open
         </button>
         {repoRoot && (

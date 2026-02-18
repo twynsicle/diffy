@@ -5,18 +5,14 @@ import type { FileChange, Section } from '@shared/types'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
+import { useRepoActions } from '../hooks/use-repo-actions'
 import { useResizablePanel } from '../hooks/use-resizable-panel'
 import { useSplitPane } from '../hooks/use-split-pane'
 import {
-  refreshStatus,
   selectFile,
   selectSelected,
   selectStaged,
   selectUnstaged,
-  stageAll,
-  stageFile,
-  unstageAll,
-  unstageFile,
 } from '../store/changes-slice'
 import { showConfirmModal } from '../store/ui-slice'
 import { buildFileTree, collectAllFolderPaths } from '../utils/file-tree'
@@ -91,6 +87,12 @@ export function SidePane(): ReactElement {
   const staged = useAppSelector(selectStaged)
   const unstaged = useAppSelector(selectUnstaged)
   const selected = useAppSelector(selectSelected)
+  const {
+    stageAndRefresh,
+    unstageAndRefresh,
+    stageAllAndRefresh,
+    unstageAllAndRefresh,
+  } = useRepoActions()
 
   const { width, handleMouseDown: handleHorizontalResize } = useResizablePanel({
     defaultWidth: 300,
@@ -131,42 +133,12 @@ export function SidePane(): ReactElement {
     [dispatch],
   )
 
-  const handleStageFile = useCallback(
-    (path: string) => {
-      void dispatch(stageFile(path)).then(() => dispatch(refreshStatus()))
-    },
-    [dispatch],
-  )
-
-  const handleUnstageFile = useCallback(
-    (path: string) => {
-      void dispatch(unstageFile(path)).then(() => dispatch(refreshStatus()))
-    },
-    [dispatch],
-  )
-
-  const handleStageAll = useCallback(() => {
-    void dispatch(stageAll()).then(() => dispatch(refreshStatus()))
-  }, [dispatch])
-
-  const handleUnstageAll = useCallback(() => {
-    void dispatch(unstageAll()).then(() => dispatch(refreshStatus()))
-  }, [dispatch])
-
-  // Folder staging: stage/unstage all files under a folder path
-  const handleStageFolderFiles = useCallback(
-    (folderPath: string) => {
-      void dispatch(stageFile(folderPath)).then(() => dispatch(refreshStatus()))
-    },
-    [dispatch],
-  )
-
-  const handleUnstageFolderFiles = useCallback(
-    (folderPath: string) => {
-      void dispatch(unstageFile(folderPath)).then(() => dispatch(refreshStatus()))
-    },
-    [dispatch],
-  )
+  const handleStageFile = stageAndRefresh
+  const handleUnstageFile = unstageAndRefresh
+  const handleStageAll = stageAllAndRefresh
+  const handleUnstageAll = unstageAllAndRefresh
+  const handleStageFolderFiles = stageAndRefresh
+  const handleUnstageFolderFiles = unstageAndRefresh
 
   // Tree folder toggle
   const handleToggleUnstagedFolder = useCallback(

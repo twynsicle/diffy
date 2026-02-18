@@ -61,34 +61,34 @@ const api: DiffyApi = {
   fetchPr: (ref: PrReference) => ipcRenderer.invoke(IPC_CHANNELS.GH_FETCH_PR, ref),
   generateNarrative: (prData: PrData) =>
     ipcRenderer.invoke(IPC_CHANNELS.LLM_GENERATE_NARRATIVE, prData),
-  onNarrativeStreamChunk: (callback: (chunk: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, chunk: string): void => {
-      callback(chunk)
+  onNarrativeStreamChunk: (callback: (requestId: string, chunk: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, requestId: string, chunk: string): void => {
+      callback(requestId, chunk)
     }
     ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_CHUNK, listener)
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.LLM_STREAM_CHUNK, listener)
     }
   },
-  onNarrativeStreamComplete: (callback: (review: NarrativeReview) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, review: NarrativeReview): void => {
-      callback(review)
+  onNarrativeStreamComplete: (callback: (requestId: string, review: NarrativeReview) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, requestId: string, review: NarrativeReview): void => {
+      callback(requestId, review)
     }
     ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_COMPLETE, listener)
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.LLM_STREAM_COMPLETE, listener)
     }
   },
-  onNarrativeStreamError: (callback: (error: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, error: string): void => {
-      callback(error)
+  onNarrativeStreamError: (callback: (requestId: string, error: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, requestId: string, error: string): void => {
+      callback(requestId, error)
     }
     ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_ERROR, listener)
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.LLM_STREAM_ERROR, listener)
     }
   },
-  cancelGeneration: () => ipcRenderer.invoke(IPC_CHANNELS.LLM_CANCEL_GENERATION),
+  cancelGeneration: (requestId?: string) => ipcRenderer.invoke(IPC_CHANNELS.LLM_CANCEL_GENERATION, requestId),
   getLastPrUrl: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_LAST_PR_URL),
   setLastPrUrl: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_LAST_PR_URL, url),
   getExcludedPatterns: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_EXCLUDED_PATTERNS),
@@ -103,9 +103,9 @@ const api: DiffyApi = {
   checkClaudeCliInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED),
   getBranchDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH_DIFF),
   getUncommittedDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_UNCOMMITTED_DIFF),
-  onNarrativeTruncationWarning: (callback: () => void) => {
-    const listener = (): void => {
-      callback()
+  onNarrativeTruncationWarning: (callback: (requestId: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, requestId: string): void => {
+      callback(requestId)
     }
     ipcRenderer.on(IPC_CHANNELS.LLM_TRUNCATION_WARNING, listener)
     return () => {

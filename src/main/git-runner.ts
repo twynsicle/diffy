@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
-import { normalize, resolve } from 'node:path'
+import { realpathSync } from 'node:fs'
+import { isAbsolute, normalize, resolve, sep } from 'node:path'
 
 import type { Result } from '@shared/types'
 
@@ -63,9 +64,31 @@ export function runGit({
 }
 
 export function isPathInsideRepo(repoRoot: string, targetPath: string): boolean {
-  const normalizedRoot = normalize(resolve(repoRoot))
-  const normalizedTarget = normalize(resolve(repoRoot, targetPath))
-  return normalizedTarget.startsWith(normalizedRoot)
+  if (isAbsolute(targetPath)) return false
+
+  // Resolve symlinks on root if possible; fall back to normalize for synthetic/test paths
+  let realRoot: string
+  try {
+    realRoot = realpathSync(repoRoot)
+  } catch {
+    realRoot = normalize(resolve(repoRoot))
+  }
+
+  const normalizedRoot = normalize(realRoot) + sep
+  const normalizedTarget = normalize(resolve(realRoot, targetPath))
+
+  // Exact root match (e.g. targetPath = "." or "")
+  if (normalizedTarget + sep === normalizedRoot) return true
+
+  // Resolve symlinks if file exists; fall back to normalized path for new files
+  let resolvedTarget: string
+  try {
+    resolvedTarget = realpathSync(resolve(realRoot, targetPath))
+  } catch {
+    resolvedTarget = normalizedTarget
+  }
+
+  return resolvedTarget.startsWith(normalizedRoot)
 }
 
 export async function getRepoRoot(folderPath: string): Promise<Result<string>> {

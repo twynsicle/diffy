@@ -51,16 +51,59 @@ export function parseNarrativeReview(text: string): Result<NarrativeReview> {
     return { ok: false, error: 'Narrative review JSON is missing required fields' }
   }
 
-  // Backward-compat: if a chapter has `summary` but no `insights`, convert
-  const review = parsed as NarrativeReview & { chapters: Array<NarrativeReview['chapters'][number] & { summary?: string }> }
-  for (const chapter of review.chapters) {
-    if (!Array.isArray(chapter.insights) && typeof chapter.summary === 'string') {
-      chapter.insights = [{ type: 'context', text: chapter.summary } satisfies Insight]
-      delete chapter.summary
+  // Validate and normalize each chapter — parsed JSON may have missing/malformed fields
+  type RawChapter = Record<string, unknown> & { summary?: string }
+  const rawChapters = (parsed as { chapters: RawChapter[] }).chapters
+
+  for (let i = 0; i < rawChapters.length; i++) {
+    const ch = rawChapters[i]
+
+    // Ensure id and title
+    if (typeof ch['id'] !== 'string' || ch['id'].length === 0) {
+      ch['id'] = `chapter-${String(i + 1)}`
+    }
+    if (typeof ch['title'] !== 'string' || ch['title'].length === 0) {
+      ch['title'] = `Chapter ${String(i + 1)}`
+    }
+
+    // Backward-compat: summary → insights
+    if (!Array.isArray(ch['insights']) && typeof ch.summary === 'string') {
+      ch['insights'] = [{ type: 'context', text: ch.summary } satisfies Insight]
+      delete ch.summary
+    }
+
+    // Ensure insights is an array and filter invalid entries
+    if (!Array.isArray(ch['insights'])) {
+      ch['insights'] = []
+    }
+    ch['insights'] = (ch['insights'] as unknown[]).filter(
+      (ins) => typeof ins === 'object' && ins !== null && typeof (ins as Record<string, unknown>)['type'] === 'string' && typeof (ins as Record<string, unknown>)['text'] === 'string',
+    )
+
+    // Ensure diffChunks is an array and filter invalid entries
+    if (!Array.isArray(ch['diffChunks'])) {
+      ch['diffChunks'] = []
+    }
+    ch['diffChunks'] = (ch['diffChunks'] as unknown[]).filter(
+      (chunk) =>
+        typeof chunk === 'object' &&
+        chunk !== null &&
+        typeof (chunk as Record<string, unknown>)['filename'] === 'string' &&
+        typeof (chunk as Record<string, unknown>)['content'] === 'string',
+    )
+
+    // Default missing fields on valid chunks
+    for (const chunk of ch['diffChunks'] as Record<string, unknown>[]) {
+      if (typeof chunk['language'] !== 'string') {
+        chunk['language'] = 'plaintext'
+      }
+      if (typeof chunk['startLine'] !== 'number') {
+        chunk['startLine'] = 1
+      }
     }
   }
 
-  return { ok: true, data: review as NarrativeReview }
+  return { ok: true, data: parsed as NarrativeReview }
 }
 
 export type NarrativeResult = Result<NarrativeReview> & { wasTruncated?: boolean; rawText?: string }

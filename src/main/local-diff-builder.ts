@@ -12,6 +12,7 @@ const MAX_UNTRACKED_FILE_SIZE = 100 * 1024
 type NameStatusEntry = {
   status: string
   filename: string
+  oldFilename?: string
 }
 
 function parseNameStatus(raw: string): NameStatusEntry[] {
@@ -20,8 +21,14 @@ function parseNameStatus(raw: string): NameStatusEntry[] {
     const trimmed = line.trim()
     if (!trimmed) continue
     const parts = trimmed.split('\t')
-    if (parts.length >= 2) {
-      entries.push({ status: parts[0], filename: parts[1] })
+    if (parts.length < 2) continue
+    const rawStatus = parts[0]
+    const status = rawStatus[0]
+
+    if ((status === 'R' || status === 'C') && parts.length >= 3) {
+      entries.push({ status, filename: parts[2], oldFilename: parts[1] })
+    } else {
+      entries.push({ status, filename: parts[1] })
     }
   }
   return entries

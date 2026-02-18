@@ -21,6 +21,7 @@ type NarrativeState = {
   selectedFile: string | null
   cancelling: boolean
   refreshingFiles: boolean
+  currentRequestId: string | null
 }
 
 const initialState: NarrativeState = {
@@ -38,6 +39,7 @@ const initialState: NarrativeState = {
   selectedFile: null,
   cancelling: false,
   refreshingFiles: false,
+  currentRequestId: null,
 }
 
 export const checkGhInstalled = createAsyncThunk<boolean, undefined, { rejectValue: string }>(
@@ -73,10 +75,15 @@ export const startNarrativeGeneration = createAsyncThunk<string, PrData, { rejec
   },
 )
 
-export const cancelGeneration = createAsyncThunk<undefined, undefined, { rejectValue: string }>(
+export const cancelGeneration = createAsyncThunk<
+  undefined,
+  undefined,
+  { state: RootState; rejectValue: string }
+>(
   'narrative/cancelGeneration',
-  async (_, { rejectWithValue }) => {
-    const result = await window.api.cancelGeneration()
+  async (_, { getState, rejectWithValue }) => {
+    const requestId = getState().narrative.currentRequestId ?? undefined
+    const result = await window.api.cancelGeneration(requestId)
     if (!result.ok) {
       return rejectWithValue(result.error)
     }
@@ -160,6 +167,7 @@ const narrativeSlice = createSlice({
       state.streamText = ''
       state.activeChapterId = null
       state.selectedFile = null
+      state.currentRequestId = null
     },
     appendStreamText(state, action: PayloadAction<string>) {
       state.streamText += action.payload
@@ -188,6 +196,7 @@ const narrativeSlice = createSlice({
       state.streamText = ''
       state.activeChapterId = null
       state.selectedFile = null
+      state.currentRequestId = null
     },
   },
   extraReducers: (builder) => {
@@ -246,6 +255,10 @@ const narrativeSlice = createSlice({
       state.review = null
       state.streamText = ''
       state.activeChapterId = null
+      state.currentRequestId = null
+    })
+    builder.addCase(startNarrativeGeneration.fulfilled, (state, action) => {
+      state.currentRequestId = action.payload
     })
     builder.addCase(startNarrativeGeneration.rejected, (state, action) => {
       state.generating = false
@@ -307,6 +320,7 @@ export const selectChapterList = (state: RootState): { id: string; title: string
 export const selectSelectedNarrativeFile = (state: RootState): string | null => state.narrative.selectedFile
 export const selectNarrativeFileList = (state: RootState): PrFileChange[] =>
   state.narrative.prData?.files ?? []
+export const selectCurrentRequestId = (state: RootState): string | null => state.narrative.currentRequestId
 export const selectCancelling = (state: RootState): boolean => state.narrative.cancelling
 export const selectRefreshingFiles = (state: RootState): boolean => state.narrative.refreshingFiles
 export const selectActiveChapterIndex = (state: RootState): number => {

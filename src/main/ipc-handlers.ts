@@ -185,6 +185,17 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       const origPath = request.origPath ?? request.path
 
       if (request.baseRef) {
+        // Verify refs exist locally before attempting diff
+        const refsToCheck = [request.baseRef, request.headRef].filter(
+          (r): r is string => r !== undefined && r !== 'HEAD' && r !== 'WORKTREE',
+        )
+        for (const ref of refsToCheck) {
+          const exists = await runGit({ repoRoot: currentRepoRoot, args: ['rev-parse', '--verify', ref] })
+          if (!exists.ok) {
+            return { ok: false, error: `Ref "${ref}" not found locally. Try: git fetch origin` }
+          }
+        }
+
         // Ref-based diff for narrative review
         original = await gitShow(currentRepoRoot, `${request.baseRef}:${origPath}`)
 
@@ -366,7 +377,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
     void (async (): Promise<void> => {
       const onChunk = (chunk: string): void => {
-        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, chunk)
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, requestId, chunk)
       }
 
       const result = provider === 'cli'
@@ -386,24 +397,32 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       activeGenerations.delete(requestId)
 
       if (result.wasTruncated) {
-        mainWindow.webContents.send(IPC_CHANNELS.LLM_TRUNCATION_WARNING)
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_TRUNCATION_WARNING, requestId)
       }
 
       if (result.ok) {
-        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_COMPLETE, result.data)
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_COMPLETE, requestId, result.data)
       } else {
-        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_ERROR, result.error)
+        mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_ERROR, requestId, result.error)
       }
     })()
 
     return { ok: true, data: requestId } satisfies Result<string>
   })
 
-  ipcMain.handle(IPC_CHANNELS.LLM_CANCEL_GENERATION, () => {
-    for (const controller of activeGenerations.values()) {
-      controller.abort()
+  ipcMain.handle(IPC_CHANNELS.LLM_CANCEL_GENERATION, (_event, targetRequestId?: string) => {
+    if (targetRequestId) {
+      const controller = activeGenerations.get(targetRequestId)
+      if (controller) {
+        controller.abort()
+        activeGenerations.delete(targetRequestId)
+      }
+    } else {
+      for (const controller of activeGenerations.values()) {
+        controller.abort()
+      }
+      activeGenerations.clear()
     }
-    activeGenerations.clear()
     return { ok: true, data: undefined }
   })
 

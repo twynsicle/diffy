@@ -52,6 +52,15 @@ describe('isPathInsideRepo', () => {
     expect(isPathInsideRepo('/repo', '../../etc/passwd')).toBe(false)
   })
 
+  it('rejects absolute paths', () => {
+    expect(isPathInsideRepo('/repo', '/etc/passwd')).toBe(false)
+    expect(isPathInsideRepo('/repo', '/repo/src/file.ts')).toBe(false)
+  })
+
+  it('rejects sibling-prefix paths', () => {
+    expect(isPathInsideRepo('/repo', '../repo-evil/file.ts')).toBe(false)
+  })
+
   it('accepts the repo root itself', () => {
     expect(isPathInsideRepo('/repo', '.')).toBe(true)
     expect(isPathInsideRepo('/repo', '')).toBe(true)
