@@ -1,26 +1,50 @@
-import type { ReactElement } from 'react'
+import { type ReactElement, useCallback } from 'react'
 
 import { SUMMARY_SECTION_ID } from '@shared/types'
 
+import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
+import { useNarrativeDiffLoader } from '../hooks/use-narrative-diff-loader'
 import {
   selectActiveChapterId,
+  selectChapterList,
   selectPrData,
   selectReview,
+  selectSelectedNarrativeFile,
+  setActiveChapter,
+  setSelectedFile,
 } from '../store/narrative-slice'
 
 import { ChapterCard } from './ChapterCard'
+import { DiffPanel } from './DiffPanel'
 import { InsightCallout } from './InsightCallout'
 import { MarkdownText } from './MarkdownText'
 import { SummaryCard } from './SummaryCard'
 import styles from './NarrativeView.module.css'
 
 export function NarrativeView(): ReactElement | null {
+  const dispatch = useAppDispatch()
   const review = useAppSelector(selectReview)
   const activeChapterId = useAppSelector(selectActiveChapterId)
   const prData = useAppSelector(selectPrData)
+  const selectedFile = useAppSelector(selectSelectedNarrativeFile)
+  const chapters = useAppSelector(selectChapterList)
+
+  useNarrativeDiffLoader()
+
+  const handleCloseFile = useCallback(() => {
+    const firstChapterId = chapters[0]?.id ?? null
+    dispatch(setSelectedFile(null))
+    if (firstChapterId) {
+      dispatch(setActiveChapter(firstChapterId))
+    }
+  }, [dispatch, chapters])
 
   if (!review) return null
+
+  if (selectedFile) {
+    return <DiffPanel filePath={selectedFile} onClose={handleCloseFile} />
+  }
 
   const activeChapter = review.chapters.find((ch) => ch.id === activeChapterId)
   const isSummary = activeChapterId === SUMMARY_SECTION_ID

@@ -23,6 +23,10 @@ export type DiffRequest = {
   path: string
   section: Section
   origPath?: string
+  /** When set, use ref-based diff instead of section-based logic. */
+  baseRef?: string
+  /** Ref for the modified side. Special value 'WORKTREE' means read from filesystem. */
+  headRef?: string
 }
 
 export type DiffContent = {
@@ -37,6 +41,8 @@ export type Result<T> =
   | { ok: false; error: string }
 
 export type AppMode = 'diff-review' | 'narrative-review'
+
+export type NarrativeSource = 'github-pr' | 'branch-diff' | 'uncommitted'
 
 export type PrReference = {
   owner: string

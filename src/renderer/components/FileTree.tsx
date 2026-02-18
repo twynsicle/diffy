@@ -4,13 +4,15 @@ import { List } from 'react-window'
 
 import type { FileChange, Section } from '@shared/types'
 
-import { FileRow } from './FileRow'
-import type { FileRowProps } from './FileRow'
-import styles from './FileList.module.css'
+import { buildFileTree, flattenTree } from '../utils/file-tree'
+
+import { TreeRow } from './TreeRow'
+import type { TreeRowProps } from './TreeRow'
+import styles from './FileTree.module.css'
 
 const ROW_HEIGHT = 28
 
-type FileListProps = {
+type FileTreeProps = {
   files: FileChange[]
   selectedPath?: string
   onSelect: (path: string, section: Section, origPath?: string) => void
@@ -18,9 +20,12 @@ type FileListProps = {
   actionLabel: string
   emptyMessage: string
   onContextMenu?: (file: FileChange, x: number, y: number) => void
+  collapsedPaths: ReadonlySet<string>
+  onToggleFolder: (folderPath: string) => void
+  onFolderAction: (folderPath: string) => void
 }
 
-export function FileList({
+export function FileTree({
   files,
   selectedPath,
   onSelect,
@@ -28,17 +33,25 @@ export function FileList({
   actionLabel,
   emptyMessage,
   onContextMenu,
-}: FileListProps): ReactElement {
-  const rowProps: FileRowProps = useMemo(
+  collapsedPaths,
+  onToggleFolder,
+  onFolderAction,
+}: FileTreeProps): ReactElement {
+  const tree = useMemo(() => buildFileTree(files), [files])
+  const rows = useMemo(() => flattenTree(tree, collapsedPaths), [tree, collapsedPaths])
+
+  const rowProps: TreeRowProps = useMemo(
     () => ({
-      files,
+      rows,
       selectedPath,
       onSelect,
       onAction,
       actionLabel,
       onContextMenu,
+      onToggleFolder,
+      onFolderAction,
     }),
-    [files, selectedPath, onSelect, onAction, actionLabel, onContextMenu],
+    [rows, selectedPath, onSelect, onAction, actionLabel, onContextMenu, onToggleFolder, onFolderAction],
   )
 
   if (files.length === 0) {
@@ -52,8 +65,8 @@ export function FileList({
   return (
     <div className={styles['container']}>
       <List
-        rowComponent={FileRow}
-        rowCount={files.length}
+        rowComponent={TreeRow}
+        rowCount={rows.length}
         rowHeight={ROW_HEIGHT}
         rowProps={rowProps}
         overscanCount={5}

@@ -8,7 +8,11 @@ import { fetchPr, selectPrLoading, setPrUrl } from '../store/narrative-slice'
 
 import styles from './PrInput.module.css'
 
-export function PrInput(): ReactElement {
+type PrInputProps = {
+  onBack?: () => void
+}
+
+export function PrInput({ onBack }: PrInputProps): ReactElement {
   const dispatch = useAppDispatch()
   const loading = useAppSelector(selectPrLoading)
   const [inputValue, setInputValue] = useState('')
@@ -51,13 +55,25 @@ export function PrInput(): ReactElement {
         }}
         disabled={loading}
       />
-      <button
-        className={styles.button}
-        type="submit"
-        disabled={loading || inputValue.trim().length === 0}
-      >
-        {loading ? <span className={styles.spinner}>&#8635;</span> : 'Fetch PR'}
-      </button>
+      <div className={styles.actions}>
+        {onBack && (
+          <button
+            className={styles.backButton}
+            type="button"
+            onClick={onBack}
+            disabled={loading}
+          >
+            Back
+          </button>
+        )}
+        <button
+          className={styles.button}
+          type="submit"
+          disabled={loading || inputValue.trim().length === 0}
+        >
+          {loading ? <span className={styles.spinner}>&#8635;</span> : 'Fetch PR'}
+        </button>
+      </div>
       {validationError && <span className={styles.error}>{validationError}</span>}
     </form>
   )

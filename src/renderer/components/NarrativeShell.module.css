@@ -40,6 +40,11 @@
   overflow: hidden;
 }
 
+.loadingText {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
 .warning {
   font-size: var(--font-size-sm);
   color: var(--warning);

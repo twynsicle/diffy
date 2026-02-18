@@ -1,3 +1,12 @@
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -5,6 +14,28 @@
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  flex-shrink: 0;
+  margin-right: var(--spacing-sm);
+  transition: background 0.15s, color 0.15s;
+}
+
+.closeBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .fileInfo {
@@ -35,7 +66,7 @@
   line-height: 1.5;
 }
 
-.button {
+.wrapBtn {
   font-family: var(--font-family);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
@@ -47,18 +78,18 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.button:hover {
+.wrapBtn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
-.active {
+.wrapBtnActive {
   background: var(--accent);
   color: var(--bg-primary);
   border-color: var(--accent);
 }
 
-.active:hover {
+.wrapBtnActive:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
 }

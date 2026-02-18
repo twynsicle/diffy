@@ -1,14 +1,13 @@
 import type { ReactElement } from 'react'
 
 import styles from './App.module.css'
-import { BinaryPlaceholder } from './components/BinaryPlaceholder'
 import { ConfirmModal } from './components/ConfirmModal'
 import { SettingsDialog } from './components/SettingsDialog'
-import { DiffToolbar } from './components/DiffToolbar'
-import { DiffView } from './components/DiffView'
+import { DiffPanel } from './components/DiffPanel'
 import { NarrativeShell } from './components/NarrativeShell'
 import { Placeholder } from './components/Placeholder'
 import { SidePane } from './components/SidePane'
+import { StatusBar } from './components/StatusBar'
 import { ToastContainer } from './components/ToastContainer'
 import { TopBar } from './components/TopBar'
 import { useAppSelector } from './hooks/use-app-selector'
@@ -18,11 +17,6 @@ import { useNarrativeKeyboard } from './hooks/use-narrative-keyboard'
 import { useRestoreLastRepo } from './hooks/use-restore-last-repo'
 import { useStatusListener } from './hooks/use-status-listener'
 import { selectSelected } from './store/changes-slice'
-import {
-  selectDiffError,
-  selectDiffIsBinary,
-  selectDiffLoading,
-} from './store/diff-slice'
 import { selectActiveMode } from './store/mode-slice'
 import { selectRepoError, selectRepoRoot } from './store/repo-slice'
 
@@ -30,9 +24,6 @@ function MainContent(): ReactElement {
   const repoRoot = useAppSelector(selectRepoRoot)
   const repoError = useAppSelector(selectRepoError)
   const selected = useAppSelector(selectSelected)
-  const loading = useAppSelector(selectDiffLoading)
-  const diffError = useAppSelector(selectDiffError)
-  const isBinary = useAppSelector(selectDiffIsBinary)
 
   if (!repoRoot) {
     return (
@@ -47,24 +38,9 @@ function MainContent(): ReactElement {
     return <Placeholder message="Select a file to view its diff" />
   }
 
-  if (loading) {
-    return <Placeholder message="Loading diff..." />
-  }
+  const sectionLabel = selected.section === 'staged' ? 'Staged' : 'Unstaged'
 
-  if (diffError) {
-    return <Placeholder message={diffError} />
-  }
-
-  if (isBinary) {
-    return <BinaryPlaceholder filePath={selected.path} />
-  }
-
-  return (
-    <div className={styles.diffArea}>
-      <DiffToolbar />
-      <DiffView />
-    </div>
-  )
+  return <DiffPanel filePath={selected.path} sectionBadge={sectionLabel} />
 }
 
 export function App(): ReactElement {
@@ -89,6 +65,7 @@ export function App(): ReactElement {
           </>
         )}
       </div>
+      <StatusBar />
       <ToastContainer />
       <ConfirmModal />
       <SettingsDialog />

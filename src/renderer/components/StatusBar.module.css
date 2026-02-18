@@ -1,0 +1,29 @@
+.statusBar {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 var(--spacing-md);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.statusBar:hover {
+  background: var(--bg-tertiary);
+}
+
+.repoPath {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.noRepo {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}

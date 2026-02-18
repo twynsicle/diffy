@@ -12,6 +12,7 @@ import { generateNarrative } from './anthropic-client'
 import { checkClaudeCliInstalled, generateNarrativeCli } from './claude-cli-client'
 import { isBinary } from './detect-binary'
 import { checkGhInstalled, fetchPrData } from './gh-runner'
+import { buildBranchDiff, buildUncommittedDiff } from './local-diff-builder'
 import { startWatching, stopWatching } from './file-watcher'
 import { getRepoRoot, isPathInsideRepo, runGit } from './git-runner'
 import { detectLanguage } from './language-map'
@@ -181,10 +182,24 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       const language = detectLanguage(request.path)
       let original: string
       let modified: string
+      const origPath = request.origPath ?? request.path
 
-      if (request.section === 'unstaged') {
+      if (request.baseRef) {
+        // Ref-based diff for narrative review
+        original = await gitShow(currentRepoRoot, `${request.baseRef}:${origPath}`)
+
+        if (request.headRef === 'WORKTREE') {
+          try {
+            modified = await readFile(join(currentRepoRoot, request.path), 'utf-8')
+          } catch {
+            modified = ''
+          }
+        } else {
+          const headRef = request.headRef ?? 'HEAD'
+          modified = await gitShow(currentRepoRoot, `${headRef}:${request.path}`)
+        }
+      } else if (request.section === 'unstaged') {
         // Unstaged: original = index, modified = worktree
-        const origPath = request.origPath ?? request.path
         const indexResult = await gitShow(currentRepoRoot, `:${origPath}`)
         original = indexResult
 
@@ -196,7 +211,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
         }
       } else {
         // Staged: original = HEAD, modified = index
-        const origPath = request.origPath ?? request.path
         const headResult = await gitShow(currentRepoRoot, `HEAD:${origPath}`)
         original = headResult
 
@@ -431,6 +445,20 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.handle(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED, async () => {
     return checkClaudeCliInstalled()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_GET_BRANCH_DIFF, async () => {
+    if (!currentRepoRoot) {
+      return { ok: false, error: 'No repository open' } satisfies Result<never>
+    }
+    return buildBranchDiff(currentRepoRoot)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_GET_UNCOMMITTED_DIFF, async () => {
+    if (!currentRepoRoot) {
+      return { ok: false, error: 'No repository open' } satisfies Result<never>
+    }
+    return buildUncommittedDiff(currentRepoRoot)
   })
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_EXCLUDED_PATTERNS, () => {

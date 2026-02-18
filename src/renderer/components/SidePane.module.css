@@ -27,11 +27,20 @@
 .section {
   display: flex;
   flex-direction: column;
-  flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.section + .section {
-  border-top: 1px solid var(--border);
+.splitHandle {
+  flex-shrink: 0;
+  height: 6px;
+  cursor: row-resize;
+  background: var(--border);
+  transition: background-color 0.15s;
+}
+
+.splitHandle:hover,
+.splitHandle:active {
+  background: var(--accent);
+  opacity: 0.6;
 }

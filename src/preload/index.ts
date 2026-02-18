@@ -101,6 +101,8 @@ const api: DiffyApi = {
   setCliModel: (model: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_CLI_MODEL, model),
   checkClaudeCliInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED),
+  getBranchDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH_DIFF),
+  getUncommittedDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_UNCOMMITTED_DIFF),
   onNarrativeTruncationWarning: (callback: () => void) => {
     const listener = (): void => {
       callback()
