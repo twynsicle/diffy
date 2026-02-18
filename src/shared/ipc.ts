@@ -39,6 +39,7 @@ export const IPC_CHANNELS = {
   CLAUDE_CLI_CHECK_INSTALLED: 'claudeCli.checkInstalled',
   GIT_GET_BRANCH_DIFF: 'git.getBranchDiff',
   GIT_GET_UNCOMMITTED_DIFF: 'git.getUncommittedDiff',
+  GIT_FETCH_ORIGIN: 'git.fetchOrigin',
 } as const
 
 export type RepoOpenResult = {
@@ -85,4 +86,5 @@ export type DiffyApi = {
   checkClaudeCliInstalled: () => Promise<Result<boolean>>
   getBranchDiff: () => Promise<Result<PrData>>
   getUncommittedDiff: () => Promise<Result<PrData>>
+  fetchOrigin: () => Promise<Result<void>>
 }

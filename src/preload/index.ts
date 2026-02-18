@@ -103,6 +103,7 @@ const api: DiffyApi = {
   checkClaudeCliInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED),
   getBranchDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH_DIFF),
   getUncommittedDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_UNCOMMITTED_DIFF),
+  fetchOrigin: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_FETCH_ORIGIN),
   onNarrativeTruncationWarning: (callback: (requestId: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, requestId: string): void => {
       callback(requestId)

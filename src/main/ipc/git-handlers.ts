@@ -156,4 +156,20 @@ export function registerGitHandlers(): void {
     }
     return { ok: true, data: undefined }
   })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_FETCH_ORIGIN, async () => {
+    const currentRepoRoot = getCurrentRepoRoot()
+    if (!currentRepoRoot) {
+      return { ok: false, error: 'No repository open' } satisfies Result<never>
+    }
+
+    const result = await runGit({
+      repoRoot: currentRepoRoot,
+      args: ['fetch', 'origin'],
+      timeoutMs: 30_000,
+    })
+
+    if (!result.ok) return result
+    return { ok: true, data: undefined }
+  })
 }

@@ -1,14 +1,17 @@
-import type { ReactElement } from 'react'
+import { type ReactElement, useCallback, useState } from 'react'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
 import {
+  loadDiff,
   selectDiffError,
   selectDiffIsBinary,
+  selectDiffLastRequest,
   selectDiffLoading,
   selectWrapEnabled,
   toggleWrap,
 } from '../store/diff-slice'
+import { addToast } from '../store/ui-slice'
 
 import styles from './DiffPanel.module.css'
 import { DiffView } from './DiffView'
@@ -26,6 +29,45 @@ export function DiffPanel({ filePath, sectionBadge, onClose }: DiffPanelProps): 
   const loading = useAppSelector(selectDiffLoading)
   const error = useAppSelector(selectDiffError)
   const isBinary = useAppSelector(selectDiffIsBinary)
+  const lastRequest = useAppSelector(selectDiffLastRequest)
+  const [fetching, setFetching] = useState(false)
+
+  const isRefNotFoundError = error !== undefined && error.includes('not found locally')
+  const canRetry = isRefNotFoundError && lastRequest?.baseRef !== undefined
+
+  const handleFetchOrigin = useCallback(() => {
+    if (!lastRequest) return
+    setFetching(true)
+    void window.api.fetchOrigin().then((result) => {
+      if (result.ok) {
+        void dispatch(loadDiff(lastRequest))
+      } else {
+        dispatch(addToast({ type: 'error', message: `Fetch failed: ${result.error}` }))
+      }
+      setFetching(false)
+    })
+  }, [dispatch, lastRequest])
+
+  const renderContent = (): ReactElement => {
+    if (loading || fetching) {
+      return <Placeholder message={fetching ? 'Fetching from origin...' : 'Loading diff...'} />
+    }
+    if (error) {
+      if (canRetry) {
+        return (
+          <Placeholder
+            message={error}
+            action={{ label: 'Fetch from origin', onClick: handleFetchOrigin }}
+          />
+        )
+      }
+      return <Placeholder message={error} />
+    }
+    if (isBinary) {
+      return <Placeholder message="Binary file — cannot display diff" />
+    }
+    return <DiffView />
+  }
 
   return (
     <div className={styles.panel}>
@@ -53,10 +95,7 @@ export function DiffPanel({ filePath, sectionBadge, onClose }: DiffPanelProps): 
           Wrap
         </button>
       </div>
-      {loading && <Placeholder message="Loading diff..." />}
-      {!loading && error && <Placeholder message={error} />}
-      {!loading && !error && isBinary && <Placeholder message="Binary file — cannot display diff" />}
-      {!loading && !error && !isBinary && <DiffView />}
+      {renderContent()}
     </div>
   )
 }

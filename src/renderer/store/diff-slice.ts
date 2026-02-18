@@ -13,6 +13,7 @@ type DiffState = {
   isBinary: boolean
   error?: string
   currentRequestId?: string
+  lastRequest?: DiffRequest
 }
 
 const initialState: DiffState = {
@@ -58,6 +59,7 @@ const diffSlice = createSlice({
       state.loading = true
       state.error = undefined
       state.currentRequestId = action.meta.requestId
+      state.lastRequest = action.meta.arg
     })
     builder.addCase(loadDiff.fulfilled, (state, action) => {
       if (state.currentRequestId !== action.meta.requestId) return
@@ -85,3 +87,4 @@ export const selectDiffLanguage = (state: RootState): string => state.diff.langu
 export const selectDiffIsBinary = (state: RootState): boolean => state.diff.isBinary
 export const selectDiffError = (state: RootState): string | undefined => state.diff.error
 export const selectWrapEnabled = (state: RootState): boolean => state.diff.wrapEnabled
+export const selectDiffLastRequest = (state: RootState): DiffRequest | undefined => state.diff.lastRequest
