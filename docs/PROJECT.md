@@ -154,7 +154,7 @@ When in narrative mode with a review loaded, these keys navigate chapters:
 - **Timeout**: 2 minutes (AbortController)
 - **529 retry**: On API overload, waits 15s with countdown chunks sent to renderer, then retries once
 - **Error handling**: HTTP status → user-friendly messages (401 → invalid key, 429 → rate limited, 529 → overloaded)
-- **Cancellation**: External AbortSignal from `ipc-handlers.ts` AbortController map
+- **Cancellation**: External AbortSignal from `ipc/narrative-handlers.ts` AbortController map
 
 ### Claude CLI Client (`claude-cli-client.ts`)
 

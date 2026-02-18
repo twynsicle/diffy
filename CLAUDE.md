@@ -106,7 +106,8 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 | File | Purpose |
 |---|---|
 | `index.ts` | Electron app lifecycle, window creation, menu setup |
-| `ipc-handlers.ts` | Registers all IPC handlers. Routes renderer requests to git/AI/settings modules |
+| `ipc-handlers.ts` | Composition root — imports and calls 6 domain `register*Handlers` functions, exports `cleanup()` |
+| `repo-state.ts` | Shared `currentRepoRoot` getter/setter used by IPC handler modules |
 | `git-runner.ts` | Execute git commands via `spawn`. Path validation. Returns `Result<string>` |
 | `parse-status.ts` | Parse `git status --porcelain=v2 -z` output into `FileChange[]` |
 | `file-watcher.ts` | Polling-based watcher (1s `setInterval`). Sends `statusChanged` events |
@@ -120,6 +121,17 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 | `local-diff-builder.ts` | Build `PrData` from local git state (branch diff vs default branch, uncommitted diff vs HEAD) |
 | `persisted-state.ts` | JSON file persistence in `userData/` (last repo, last PR URL, AI provider, CLI model, excluded patterns) |
 | `secure-storage.ts` | Anthropic API key storage using Electron `safeStorage` encryption |
+
+### IPC Handler Modules (`src/main/ipc/`)
+
+| File | Purpose |
+|---|---|
+| `repo-handlers.ts` | 3 handlers: get last repo, select folder, open repo |
+| `git-handlers.ts` | 7 handlers: status, stage/unstage file/all, discard, delete. Private `isTracked()` helper |
+| `diff-handlers.ts` | 3 handlers: get diff content, branch diff, uncommitted diff. Private `gitShow()` helper |
+| `settings-handlers.ts` | 12 handlers: API key CRUD, last PR URL, AI provider, CLI model, excluded patterns |
+| `github-handlers.ts` | 2 handlers: check `gh` installed, fetch PR data |
+| `narrative-handlers.ts` | 3 handlers: generate narrative, cancel generation, check Claude CLI. Owns `activeGenerations` state. Returns `{ cleanup }` |
 
 ### Shared (`src/shared/`)
 
