@@ -12,6 +12,7 @@ type ChangesState = {
   selected?: Selection
   statusUpdatedAt: number
   refreshing: boolean
+  pollError: string | null
 }
 
 const initialState: ChangesState = {
@@ -19,11 +20,12 @@ const initialState: ChangesState = {
   unstaged: [],
   statusUpdatedAt: 0,
   refreshing: false,
+  pollError: null,
 }
 
 export const refreshStatus = createAsyncThunk<
   { staged: FileChange[]; unstaged: FileChange[] },
-  undefined,
+  { background?: boolean } | undefined,
   { rejectValue: string }
 >('changes/refreshStatus', async (_, { rejectWithValue }) => {
   const result = await window.api.getStatus()
@@ -114,11 +116,15 @@ const changesSlice = createSlice({
     builder.addCase(refreshStatus.pending, (state) => {
       state.refreshing = true
     })
-    builder.addCase(refreshStatus.rejected, (state) => {
+    builder.addCase(refreshStatus.rejected, (state, action) => {
       state.refreshing = false
+      if (action.meta?.arg?.background) {
+        state.pollError = (action.payload as string) ?? 'Git status failed'
+      }
     })
     builder.addCase(refreshStatus.fulfilled, (state, action) => {
       state.refreshing = false
+      state.pollError = null
 
       // Snapshot old section list before overwriting for next-file logic
       const oldSectionFiles = state.selected
@@ -170,3 +176,4 @@ export const selectStaged = (state: RootState): FileChange[] => state.changes.st
 export const selectUnstaged = (state: RootState): FileChange[] => state.changes.unstaged
 export const selectSelected = (state: RootState): Selection | undefined => state.changes.selected
 export const selectRefreshing = (state: RootState): boolean => state.changes.refreshing
+export const selectPollError = (state: RootState): string | null => state.changes.pollError

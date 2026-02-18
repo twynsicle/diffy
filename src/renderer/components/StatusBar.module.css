@@ -27,3 +27,10 @@
   font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
+
+.healthWarning {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--warning);
+}

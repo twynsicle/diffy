@@ -9,7 +9,7 @@ export function useStatusListener(): void {
 
   useEffect(() => {
     return window.api.onStatusChanged(() => {
-      void dispatch(refreshStatus())
+      void dispatch(refreshStatus({ background: true }))
     })
   }, [dispatch])
 }
