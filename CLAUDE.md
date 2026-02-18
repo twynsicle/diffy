@@ -189,6 +189,7 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 | `file-tree.ts` | Build hierarchical file tree from flat `FileChange[]` with path compression |
 | `truncate-path.ts` | Truncate long file paths with ellipsis for display |
 | `parse-diff-chunk.ts` | Split unified diff chunk content into original/modified sides |
+| `generation-duration.ts` | Record and average narrative generation durations in localStorage |
 
 ## Documentation
 

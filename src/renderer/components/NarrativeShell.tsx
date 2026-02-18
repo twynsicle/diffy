@@ -1,13 +1,14 @@
-import { type ReactElement, useCallback, useState } from 'react'
+import { type ReactElement, useCallback, useEffect, useState } from 'react'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
-import { useNarrativeStream } from '../hooks/use-narrative-stream'
 import {
   clearPr,
   clearReview,
+  selectCurrentRequestId,
   selectGenerateError,
   selectGenerating,
+  setGenerateError,
   selectNarrativeSource,
   selectPrData,
   selectPrError,
@@ -37,13 +38,21 @@ export function NarrativeShell(): ReactElement {
   const prLoading = useAppSelector(selectPrLoading)
   const prError = useAppSelector(selectPrError)
   const generating = useAppSelector(selectGenerating)
+  const currentRequestId = useAppSelector(selectCurrentRequestId)
   const generateError = useAppSelector(selectGenerateError)
   const review = useAppSelector(selectReview)
   const streamText = useAppSelector(selectStreamText)
   const selectedFile = useAppSelector(selectSelectedNarrativeFile)
   const [showRaw, setShowRaw] = useState(false)
 
-  useNarrativeStream()
+  // Safety net: if generating is stuck true from a prior session (e.g. app restart)
+  // but there's no active request, reset the state so the user isn't stuck.
+  useEffect(() => {
+    if (generating && !currentRequestId) {
+      dispatch(setGenerateError('Generation was interrupted. Please try again.'))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleGenerate = useCallback(() => {
     if (!prData) return

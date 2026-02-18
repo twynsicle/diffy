@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import { recordGenerationDuration } from '../components/GeneratingOverlay'
+import { recordGenerationDuration } from '../utils/generation-duration'
 import {
   appendStreamText,
   selectCurrentRequestId,

@@ -14,6 +14,7 @@ import { useAppSelector } from './hooks/use-app-selector'
 import { useDiffLoader } from './hooks/use-diff-loader'
 import { useKeyboardShortcuts } from './hooks/use-keyboard-shortcuts'
 import { useNarrativeKeyboard } from './hooks/use-narrative-keyboard'
+import { useNarrativeStream } from './hooks/use-narrative-stream'
 import { useRestoreLastRepo } from './hooks/use-restore-last-repo'
 import { useStatusListener } from './hooks/use-status-listener'
 import { selectSelected } from './store/changes-slice'
@@ -51,6 +52,7 @@ export function App(): ReactElement {
   useDiffLoader()
   useKeyboardShortcuts()
   useNarrativeKeyboard()
+  useNarrativeStream()
 
   return (
     <div className={styles.app}>
