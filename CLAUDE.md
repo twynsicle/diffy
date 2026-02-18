@@ -177,10 +177,10 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 `TopBar`, `StatusBar`, `SidePane`, `Placeholder`, `BinaryPlaceholder`, `ToastContainer`, `ContextMenu`, `ConfirmModal`, `SettingsDialog`
 
 **Diff Review:**
-`DiffView`, `DiffPanel`, `FileTree`, `TreeRow`, `SectionHeader`
+`DiffView`, `DiffPanel`, `FileTree` (both modes), `TreeRow` (both modes, supports `compact` variant), `SectionHeader`
 
 **Narrative Review:**
-`NarrativeShell`, `NarrativeView`, `NarrativeToolbar`, `NarrativeFileTree`, `SourceSelect`, `PrInput`, `ChapterCard`, `ChapterNav`, `ChapterNavBar`, `SummaryCard`, `PrSummary`, `InsightCallout`, `InlineDiffChunk`, `MarkdownText`, `GeneratingOverlay`, `RawResponseModal`
+`NarrativeShell`, `NarrativeView`, `NarrativeToolbar`, `SourceSelect`, `PrInput`, `ChapterCard`, `ChapterNav`, `ChapterNavBar`, `SummaryCard`, `PrSummary`, `InsightCallout`, `InlineDiffChunk`, `MarkdownText`, `GeneratingOverlay`, `RawResponseModal`
 
 ### Renderer — Utils (`src/renderer/utils/`)
 
@@ -190,6 +190,7 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 | `truncate-path.ts` | Truncate long file paths with ellipsis for display |
 | `parse-diff-chunk.ts` | Split unified diff chunk content into original/modified sides |
 | `generation-duration.ts` | Record and average narrative generation durations in localStorage |
+| `status-adapter.ts` | Convert PR file statuses to FileChange objects for unified file tree rendering |
 
 ## Documentation
 

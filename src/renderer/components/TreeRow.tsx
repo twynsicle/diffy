@@ -10,11 +10,12 @@ export type TreeRowProps = {
   rows: FlatRow[]
   selectedPath?: string
   onSelect: (path: string, section: Section, origPath?: string) => void
-  onAction: (path: string) => void
-  actionLabel: string
-  onContextMenu?: (file: FileChange, x: number, y: number) => void
   onToggleFolder: (folderPath: string) => void
-  onFolderAction: (folderPath: string) => void
+  onAction?: (path: string) => void
+  actionLabel?: string
+  onFolderAction?: (folderPath: string) => void
+  onContextMenu?: (file: FileChange, x: number, y: number) => void
+  variant?: 'default' | 'compact'
 }
 
 function badgeClass(code: string | undefined): string {
@@ -44,20 +45,30 @@ export function TreeRow({
   onContextMenu,
   onToggleFolder,
   onFolderAction,
+  variant = 'default',
 }: TreeRowProps & {
   index: number
   style: CSSProperties
   ariaAttributes: Record<string, unknown>
 }): ReactElement {
   const row = rows[index]
-  const indent = row.depth * 16
+  const isCompact = variant === 'compact'
+  const indent = row.depth * (isCompact ? 12 : 16)
 
   if (row.kind === 'folder') {
     const { node, isExpanded } = row
+
+    const folderClass = [
+      styles['row'],
+      isCompact ? styles['compact'] : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+
     return (
       <div
-        className={styles['row']}
-        style={{ ...style, paddingLeft: indent + 8 }}
+        className={folderClass}
+        style={{ ...style, paddingLeft: indent + (isCompact ? 12 : 8) }}
         onClick={() => { onToggleFolder(node.path) }}
         role="treeitem"
         aria-expanded={isExpanded}
@@ -68,16 +79,18 @@ export function TreeRow({
         <span className={styles['folderName']} title={node.path}>
           {node.name} <span className={styles['fileCount']}>({node.fileCount})</span>
         </span>
-        <button
-          className={styles['action']}
-          onClick={(e) => {
-            e.stopPropagation()
-            onFolderAction(node.path)
-          }}
-          type="button"
-        >
-          {actionLabel}
-        </button>
+        {actionLabel && onFolderAction && (
+          <button
+            className={styles['action']}
+            onClick={(e) => {
+              e.stopPropagation()
+              onFolderAction(node.path)
+            }}
+            type="button"
+          >
+            {actionLabel}
+          </button>
+        )}
       </div>
     )
   }
@@ -89,6 +102,7 @@ export function TreeRow({
 
   const rowClass = [
     styles['row'],
+    isCompact ? styles['compact'] : '',
     isSelected ? styles['selected'] : '',
     file.isDeleted ? styles['deleted'] : '',
   ]
@@ -98,7 +112,7 @@ export function TreeRow({
   return (
     <div
       className={rowClass}
-      style={{ ...style, paddingLeft: indent + 8 }}
+      style={{ ...style, paddingLeft: indent + (isCompact ? 12 : 8) }}
       onClick={() => { onSelect(file.path, file.section, file.origPath) }}
       onContextMenu={(e) => {
         e.preventDefault()
@@ -113,16 +127,18 @@ export function TreeRow({
       <span className={styles['path']} title={file.displayPath}>
         {node.name}
       </span>
-      <button
-        className={styles['action']}
-        onClick={(e) => {
-          e.stopPropagation()
-          onAction(file.path)
-        }}
-        type="button"
-      >
-        {actionLabel}
-      </button>
+      {actionLabel && onAction && (
+        <button
+          className={styles['action']}
+          onClick={(e) => {
+            e.stopPropagation()
+            onAction(file.path)
+          }}
+          type="button"
+        >
+          {actionLabel}
+        </button>
+      )}
     </div>
   )
 }

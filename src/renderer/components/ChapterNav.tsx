@@ -1,4 +1,4 @@
-import { type ReactElement, useCallback } from 'react'
+import { type ReactElement, useCallback, useMemo, useState } from 'react'
 
 import { SUMMARY_SECTION_ID } from '@shared/types'
 
@@ -15,9 +15,10 @@ import {
   setActiveChapter,
   setSelectedFile,
 } from '../store/narrative-slice'
+import { prFileToFileChange } from '../utils/status-adapter'
 
 import styles from './ChapterNav.module.css'
-import { NarrativeFileTree } from './NarrativeFileTree'
+import { FileTree } from './FileTree'
 
 export function ChapterNav(): ReactElement {
   const dispatch = useAppDispatch()
@@ -35,9 +36,25 @@ export function ChapterNav(): ReactElement {
     [dispatch],
   )
 
+  const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(() => new Set())
+
+  const fileChanges = useMemo(() => files.map(prFileToFileChange), [files])
+
+  const handleToggleFolder = useCallback((folderPath: string) => {
+    setCollapsedPaths((prev) => {
+      const next = new Set(prev)
+      if (next.has(folderPath)) {
+        next.delete(folderPath)
+      } else {
+        next.add(folderPath)
+      }
+      return next
+    })
+  }, [])
+
   const handleSelectFile = useCallback(
-    (filename: string) => {
-      dispatch(setSelectedFile(filename))
+    (path: string) => {
+      dispatch(setSelectedFile(path))
     },
     [dispatch],
   )
@@ -102,10 +119,15 @@ export function ChapterNav(): ReactElement {
                   </svg>
                 </button>
               </div>
-              <NarrativeFileTree
-                files={files}
-                selectedFile={selectedFile}
-                onSelectFile={handleSelectFile}
+              <FileTree
+                files={fileChanges}
+                selectedPath={selectedFile ?? undefined}
+                onSelect={handleSelectFile}
+                emptyMessage="No files"
+                collapsedPaths={collapsedPaths}
+                onToggleFolder={handleToggleFolder}
+                virtualize={false}
+                variant="compact"
               />
             </>
           )}

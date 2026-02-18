@@ -119,3 +119,52 @@
   color: var(--text-primary);
   background: var(--bg-hover);
 }
+
+/* Compact variant (narrative mode) */
+
+.compact {
+  height: 26px;
+  padding: 0 var(--spacing-md);
+  border-left: 3px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.compact:hover {
+  background: var(--bg-hover);
+}
+
+.compact.selected {
+  background: rgba(137, 180, 250, 0.06);
+  border-left-color: var(--accent);
+}
+
+.compact.selected:hover {
+  background: rgba(137, 180, 250, 0.06);
+}
+
+.compact .chevron {
+  width: 14px;
+  font-size: 20px;
+  margin-top: -2px;
+}
+
+.compact .badge {
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  margin-right: 4px;
+}
+
+.compact .fileCount {
+  font-size: 10px;
+  margin-left: 3px;
+}
+
+.compact .path {
+  color: var(--text-primary);
+}
+
+.compact.deleted .path {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}

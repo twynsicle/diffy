@@ -67,7 +67,7 @@ The original mode. `App.tsx` renders `<MainContent />` (Monaco diff view) + `<Si
 - `NarrativeToolbar` — generate/cancel/regenerate buttons
 - `NarrativeView` — chapter cards with insights and inline diffs
 - `ChapterNav` / `ChapterNavBar` — chapter navigation sidebar
-- `NarrativeFileTree` — file tree for the PR/diff files
+- `FileTree` (compact variant) — file tree for the PR/diff files (shared with diff-review mode)
 - `DiffPanel` — Monaco diff view for selected file (reused from diff-review mode)
 
 Mode switching is done via `TopBar`, which dispatches `setMode()`.
@@ -297,7 +297,7 @@ User clicks file row in FileTree
 ### Narrative Diff Loading Flow
 
 ```
-User clicks file in NarrativeFileTree
+User clicks file in FileTree (compact variant)
   → narrativeSlice.setSelectedFile(filename)
   → use-narrative-diff-loader detects selection change
   → dispatches loadDiff with ref-based parameters:
@@ -455,7 +455,7 @@ All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same fil
 - **Generate**: Sends PR data to AI, shows streaming overlay with elapsed time
 - **Cancel**: Aborts in-flight generation
 - **Chapter navigation**: Click chapter in nav bar, or use keyboard shortcuts
-- **File selection**: Click file in NarrativeFileTree to view its diff in Monaco
+- **File selection**: Click file in FileTree to view its diff in Monaco
 - **Summary section**: Special `__summary__` section shows overview and file stats
 - **Raw response**: Debug modal showing raw LLM output (accessible from toolbar)
 

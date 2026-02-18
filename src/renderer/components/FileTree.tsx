@@ -16,26 +16,30 @@ type FileTreeProps = {
   files: FileChange[]
   selectedPath?: string
   onSelect: (path: string, section: Section, origPath?: string) => void
-  onAction: (path: string) => void
-  actionLabel: string
   emptyMessage: string
-  onContextMenu?: (file: FileChange, x: number, y: number) => void
   collapsedPaths: ReadonlySet<string>
   onToggleFolder: (folderPath: string) => void
-  onFolderAction: (folderPath: string) => void
+  onAction?: (path: string) => void
+  actionLabel?: string
+  onFolderAction?: (folderPath: string) => void
+  onContextMenu?: (file: FileChange, x: number, y: number) => void
+  virtualize?: boolean
+  variant?: 'default' | 'compact'
 }
 
 export function FileTree({
   files,
   selectedPath,
   onSelect,
-  onAction,
-  actionLabel,
   emptyMessage,
-  onContextMenu,
   collapsedPaths,
   onToggleFolder,
+  onAction,
+  actionLabel,
   onFolderAction,
+  onContextMenu,
+  virtualize = true,
+  variant = 'default',
 }: FileTreeProps): ReactElement {
   const tree = useMemo(() => buildFileTree(files), [files])
   const rows = useMemo(() => flattenTree(tree, collapsedPaths), [tree, collapsedPaths])
@@ -50,14 +54,31 @@ export function FileTree({
       onContextMenu,
       onToggleFolder,
       onFolderAction,
+      variant,
     }),
-    [rows, selectedPath, onSelect, onAction, actionLabel, onContextMenu, onToggleFolder, onFolderAction],
+    [rows, selectedPath, onSelect, onAction, actionLabel, onContextMenu, onToggleFolder, onFolderAction, variant],
   )
 
   if (files.length === 0) {
     return (
       <div className={styles['container']}>
         <div className={styles['empty']}>{emptyMessage}</div>
+      </div>
+    )
+  }
+
+  if (!virtualize) {
+    return (
+      <div className={styles['container']}>
+        {rows.map((row, i) => (
+          <TreeRow
+            key={row.kind === 'folder' ? `f:${row.node.path}` : `e:${row.node.file.path}`}
+            index={i}
+            style={{}}
+            ariaAttributes={{}}
+            {...rowProps}
+          />
+        ))}
       </div>
     )
   }
