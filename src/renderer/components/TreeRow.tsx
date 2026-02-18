@@ -2,17 +2,19 @@ import type { CSSProperties, ReactElement } from 'react'
 
 import type { FileChange, Section } from '@shared/types'
 
-import { truncatePath } from '../utils/truncate-path'
+import type { FlatRow } from '../utils/file-tree'
 
-import styles from './FileRow.module.css'
+import styles from './TreeRow.module.css'
 
-export type FileRowProps = {
-  files: FileChange[]
+export type TreeRowProps = {
+  rows: FlatRow[]
   selectedPath?: string
   onSelect: (path: string, section: Section, origPath?: string) => void
   onAction: (path: string) => void
   actionLabel: string
   onContextMenu?: (file: FileChange, x: number, y: number) => void
+  onToggleFolder: (folderPath: string) => void
+  onFolderAction: (folderPath: string) => void
 }
 
 function badgeClass(code: string | undefined): string {
@@ -31,21 +33,57 @@ function badgeClass(code: string | undefined): string {
   }
 }
 
-export function FileRow({
+export function TreeRow({
   index,
   style,
-  files,
+  rows,
   selectedPath,
   onSelect,
   onAction,
   actionLabel,
   onContextMenu,
-}: FileRowProps & {
+  onToggleFolder,
+  onFolderAction,
+}: TreeRowProps & {
   index: number
   style: CSSProperties
   ariaAttributes: Record<string, unknown>
 }): ReactElement {
-  const file = files[index]
+  const row = rows[index]
+  const indent = row.depth * 16
+
+  if (row.kind === 'folder') {
+    const { node, isExpanded } = row
+    return (
+      <div
+        className={styles['row']}
+        style={{ ...style, paddingLeft: indent + 8 }}
+        onClick={() => { onToggleFolder(node.path) }}
+        role="treeitem"
+        aria-expanded={isExpanded}
+      >
+        <span className={styles['chevron']}>
+          {isExpanded ? '\u25BE' : '\u25B8'}
+        </span>
+        <span className={styles['folderName']} title={node.path}>
+          {node.name} <span className={styles['fileCount']}>({node.fileCount})</span>
+        </span>
+        <button
+          className={styles['action']}
+          onClick={(e) => {
+            e.stopPropagation()
+            onFolderAction(node.path)
+          }}
+          type="button"
+        >
+          {actionLabel}
+        </button>
+      </div>
+    )
+  }
+
+  const { node } = row
+  const file = node.file
   const statusCode = file.section === 'staged' ? file.X : file.Y
   const isSelected = file.path === selectedPath
 
@@ -60,7 +98,7 @@ export function FileRow({
   return (
     <div
       className={rowClass}
-      style={style}
+      style={{ ...style, paddingLeft: indent + 8 }}
       onClick={() => { onSelect(file.path, file.section, file.origPath) }}
       onContextMenu={(e) => {
         e.preventDefault()
@@ -73,7 +111,7 @@ export function FileRow({
         {statusCode ?? '?'}
       </span>
       <span className={styles['path']} title={file.displayPath}>
-        {truncatePath(file.displayPath)}
+        {node.name}
       </span>
       <button
         className={styles['action']}

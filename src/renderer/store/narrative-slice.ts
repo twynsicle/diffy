@@ -1,11 +1,13 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
-import type { NarrativeReview, PrData, PrReference } from '@shared/types'
+import type { NarrativeReview, NarrativeSource, PrData, PrFileChange, PrReference } from '@shared/types'
 import { SUMMARY_SECTION_ID } from '@shared/types'
+import { parsePrUrl } from '@shared/parse-pr-url'
 
 import type { RootState } from '.'
 
 type NarrativeState = {
+  source: NarrativeSource | null
   prUrl: string
   prData: PrData | null
   prLoading: boolean
@@ -16,10 +18,13 @@ type NarrativeState = {
   generateError: string | null
   streamText: string
   activeChapterId: string | null
+  selectedFile: string | null
   cancelling: boolean
+  refreshingFiles: boolean
 }
 
 const initialState: NarrativeState = {
+  source: null,
   prUrl: '',
   prData: null,
   prLoading: false,
@@ -30,7 +35,9 @@ const initialState: NarrativeState = {
   generateError: null,
   streamText: '',
   activeChapterId: null,
+  selectedFile: null,
   cancelling: false,
+  refreshingFiles: false,
 }
 
 export const checkGhInstalled = createAsyncThunk<boolean, undefined, { rejectValue: string }>(
@@ -76,14 +83,73 @@ export const cancelGeneration = createAsyncThunk<undefined, undefined, { rejectV
   },
 )
 
+export const fetchBranchDiff = createAsyncThunk<PrData, undefined, { rejectValue: string }>(
+  'narrative/fetchBranchDiff',
+  async (_, { rejectWithValue }) => {
+    const result = await window.api.getBranchDiff()
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+    return result.data
+  },
+)
+
+export const fetchUncommittedDiff = createAsyncThunk<PrData, undefined, { rejectValue: string }>(
+  'narrative/fetchUncommittedDiff',
+  async (_, { rejectWithValue }) => {
+    const result = await window.api.getUncommittedDiff()
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+    return result.data
+  },
+)
+
+export const refreshNarrativeFiles = createAsyncThunk<
+  PrData,
+  undefined,
+  { state: RootState; rejectValue: string }
+>(
+  'narrative/refreshNarrativeFiles',
+  async (_, { getState, rejectWithValue }) => {
+    const { source, prUrl } = getState().narrative
+
+    if (source === 'branch-diff') {
+      const result = await window.api.getBranchDiff()
+      if (!result.ok) return rejectWithValue(result.error)
+      return result.data
+    }
+
+    if (source === 'uncommitted') {
+      const result = await window.api.getUncommittedDiff()
+      if (!result.ok) return rejectWithValue(result.error)
+      return result.data
+    }
+
+    if (source === 'github-pr' && prUrl) {
+      const ref = parsePrUrl(prUrl)
+      if (!ref) return rejectWithValue('Invalid PR URL')
+      const result = await window.api.fetchPr(ref)
+      if (!result.ok) return rejectWithValue(result.error)
+      return result.data
+    }
+
+    return rejectWithValue('Cannot refresh files for this source')
+  },
+)
+
 const narrativeSlice = createSlice({
   name: 'narrative',
   initialState,
   reducers: {
+    setSource(state, action: PayloadAction<NarrativeSource | null>) {
+      state.source = action.payload
+    },
     setPrUrl(state, action: PayloadAction<string>) {
       state.prUrl = action.payload
     },
     clearPr(state) {
+      state.source = null
       state.prUrl = ''
       state.prData = null
       state.prLoading = false
@@ -93,12 +159,18 @@ const narrativeSlice = createSlice({
       state.generateError = null
       state.streamText = ''
       state.activeChapterId = null
+      state.selectedFile = null
     },
     appendStreamText(state, action: PayloadAction<string>) {
       state.streamText += action.payload
     },
     setActiveChapter(state, action: PayloadAction<string | null>) {
       state.activeChapterId = action.payload
+      state.selectedFile = null
+    },
+    setSelectedFile(state, action: PayloadAction<string | null>) {
+      state.selectedFile = action.payload
+      state.activeChapterId = null
     },
     setReview(state, action: PayloadAction<NarrativeReview>) {
       state.review = action.payload
@@ -115,6 +187,7 @@ const narrativeSlice = createSlice({
       state.generateError = null
       state.streamText = ''
       state.activeChapterId = null
+      state.selectedFile = null
     },
   },
   extraReducers: (builder) => {
@@ -139,6 +212,34 @@ const narrativeSlice = createSlice({
       state.prError = action.payload ?? action.error.message ?? 'Failed to fetch PR'
     })
 
+    builder.addCase(fetchBranchDiff.pending, (state) => {
+      state.prLoading = true
+      state.prError = null
+      state.prData = null
+    })
+    builder.addCase(fetchBranchDiff.fulfilled, (state, action) => {
+      state.prLoading = false
+      state.prData = action.payload
+    })
+    builder.addCase(fetchBranchDiff.rejected, (state, action) => {
+      state.prLoading = false
+      state.prError = action.payload ?? action.error.message ?? 'Failed to get branch diff'
+    })
+
+    builder.addCase(fetchUncommittedDiff.pending, (state) => {
+      state.prLoading = true
+      state.prError = null
+      state.prData = null
+    })
+    builder.addCase(fetchUncommittedDiff.fulfilled, (state, action) => {
+      state.prLoading = false
+      state.prData = action.payload
+    })
+    builder.addCase(fetchUncommittedDiff.rejected, (state, action) => {
+      state.prLoading = false
+      state.prError = action.payload ?? action.error.message ?? 'Failed to get uncommitted diff'
+    })
+
     builder.addCase(startNarrativeGeneration.pending, (state) => {
       state.generating = true
       state.generateError = null
@@ -160,20 +261,37 @@ const narrativeSlice = createSlice({
     builder.addCase(cancelGeneration.rejected, (state) => {
       state.cancelling = false
     })
+
+    builder.addCase(refreshNarrativeFiles.pending, (state) => {
+      state.refreshingFiles = true
+    })
+    builder.addCase(refreshNarrativeFiles.fulfilled, (state, action) => {
+      state.refreshingFiles = false
+      if (state.prData) {
+        state.prData.files = action.payload.files
+        state.prData.diff = action.payload.diff
+      }
+    })
+    builder.addCase(refreshNarrativeFiles.rejected, (state) => {
+      state.refreshingFiles = false
+    })
   },
 })
 
 export const {
+  setSource,
   setPrUrl,
   clearPr,
   appendStreamText,
   setActiveChapter,
+  setSelectedFile,
   setReview,
   setGenerateError,
   clearReview,
 } = narrativeSlice.actions
 export const narrativeReducer = narrativeSlice.reducer
 
+export const selectNarrativeSource = (state: RootState): NarrativeSource | null => state.narrative.source
 export const selectPrUrl = (state: RootState): string => state.narrative.prUrl
 export const selectPrData = (state: RootState): PrData | null => state.narrative.prData
 export const selectPrLoading = (state: RootState): boolean => state.narrative.prLoading
@@ -186,7 +304,11 @@ export const selectStreamText = (state: RootState): string => state.narrative.st
 export const selectActiveChapterId = (state: RootState): string | null => state.narrative.activeChapterId
 export const selectChapterList = (state: RootState): { id: string; title: string }[] =>
   state.narrative.review?.chapters.map((ch) => ({ id: ch.id, title: ch.title })) ?? []
+export const selectSelectedNarrativeFile = (state: RootState): string | null => state.narrative.selectedFile
+export const selectNarrativeFileList = (state: RootState): PrFileChange[] =>
+  state.narrative.prData?.files ?? []
 export const selectCancelling = (state: RootState): boolean => state.narrative.cancelling
+export const selectRefreshingFiles = (state: RootState): boolean => state.narrative.refreshingFiles
 export const selectActiveChapterIndex = (state: RootState): number => {
   const { review, activeChapterId } = state.narrative
   if (!review || !activeChapterId) return -1

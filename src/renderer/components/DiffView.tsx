@@ -14,11 +14,17 @@ import {
 
 import styles from './DiffView.module.css'
 
+const CONTEXT_LINES_ABOVE = 5
+
 function revealFirstDiff(diffEditor: editor.IStandaloneDiffEditor): void {
+  const reveal = (lineChanges: editor.ILineChange[]): void => {
+    const targetLine = Math.max(1, lineChanges[0].modifiedStartLineNumber - CONTEXT_LINES_ABOVE)
+    diffEditor.getModifiedEditor().revealLineNearTop(targetLine)
+  }
+
   const changes = diffEditor.getLineChanges()
   if (changes && changes.length > 0) {
-    const firstLine = changes[0].modifiedStartLineNumber
-    diffEditor.getModifiedEditor().revealLineInCenter(firstLine)
+    reveal(changes)
     return
   }
   // Diff may not be computed yet — wait for it
@@ -26,7 +32,7 @@ function revealFirstDiff(diffEditor: editor.IStandaloneDiffEditor): void {
     disposable.dispose()
     const updated = diffEditor.getLineChanges()
     if (updated && updated.length > 0) {
-      diffEditor.getModifiedEditor().revealLineInCenter(updated[0].modifiedStartLineNumber)
+      reveal(updated)
     }
   })
 }

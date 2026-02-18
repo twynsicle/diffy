@@ -1,18 +1,19 @@
-import { type ReactElement, useCallback, useEffect, useState } from 'react'
+import { type ReactElement, useCallback, useState } from 'react'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
 import { useNarrativeStream } from '../hooks/use-narrative-stream'
 import {
-  checkGhInstalled,
   clearPr,
   clearReview,
   selectGenerateError,
   selectGenerating,
-  selectGhInstalled,
+  selectNarrativeSource,
   selectPrData,
   selectPrError,
+  selectPrLoading,
   selectReview,
+  selectSelectedNarrativeFile,
   selectStreamText,
   startNarrativeGeneration,
 } from '../store/narrative-slice'
@@ -27,25 +28,22 @@ import { NarrativeView } from './NarrativeView'
 import { PrInput } from './PrInput'
 import { PrSummary } from './PrSummary'
 import { RawResponseModal } from './RawResponseModal'
+import { SourceSelect } from './SourceSelect'
 
 export function NarrativeShell(): ReactElement {
   const dispatch = useAppDispatch()
-  const ghInstalled = useAppSelector(selectGhInstalled)
+  const source = useAppSelector(selectNarrativeSource)
   const prData = useAppSelector(selectPrData)
+  const prLoading = useAppSelector(selectPrLoading)
   const prError = useAppSelector(selectPrError)
   const generating = useAppSelector(selectGenerating)
   const generateError = useAppSelector(selectGenerateError)
   const review = useAppSelector(selectReview)
   const streamText = useAppSelector(selectStreamText)
+  const selectedFile = useAppSelector(selectSelectedNarrativeFile)
   const [showRaw, setShowRaw] = useState(false)
 
   useNarrativeStream()
-
-  useEffect(() => {
-    if (ghInstalled === null) {
-      void dispatch(checkGhInstalled())
-    }
-  }, [dispatch, ghInstalled])
 
   const handleGenerate = useCallback(() => {
     if (!prData) return
@@ -77,7 +75,7 @@ export function NarrativeShell(): ReactElement {
     void dispatch(startNarrativeGeneration(prData))
   }, [dispatch, prData])
 
-  const handleCancel = useCallback(() => {
+  const handleBack = useCallback(() => {
     dispatch(clearPr())
   }, [dispatch])
 
@@ -96,6 +94,7 @@ export function NarrativeShell(): ReactElement {
     ? generateError.includes('parse') || generateError.includes('tags')
     : false
 
+  // Phase: Review
   if (review) {
     return (
       <div className={styles.shell}>
@@ -105,24 +104,63 @@ export function NarrativeShell(): ReactElement {
             <NarrativeView />
             <ChapterNav />
           </div>
-          <ChapterNavBar />
+          {!selectedFile && <ChapterNavBar />}
         </div>
       </div>
     )
   }
 
+  // Phase: Source selection
+  if (source === null) {
+    return (
+      <div className={styles.shell}>
+        <SourceSelect />
+      </div>
+    )
+  }
+
+  // Phase: GitHub PR input
+  if (source === 'github-pr' && !prData && !prLoading && !prError) {
+    return (
+      <div className={styles.shell}>
+        <div className={styles.inputPhase}>
+          <PrInput onBack={handleBack} />
+        </div>
+      </div>
+    )
+  }
+
+  // Phase: Loading (branch-diff or uncommitted fetch, or PR fetch)
+  if (!prData && prLoading) {
+    return (
+      <div className={styles.shell}>
+        <div className={styles.inputPhase}>
+          <div className={styles.loadingText}>Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Phase: Error fetching source data
+  if (!prData && prError) {
+    return (
+      <div className={styles.shell}>
+        <div className={styles.inputPhase}>
+          <div className={styles.error}>{prError}</div>
+          <button className={styles.cancelBtn} onClick={handleBack} type="button">
+            Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Phase: PR summary + generate
   if (!prData) {
     return (
       <div className={styles.shell}>
         <div className={styles.inputPhase}>
-          {ghInstalled === false && (
-            <div className={styles.warning}>
-              GitHub CLI (gh) not found. Install it from{' '}
-              <code>https://cli.github.com</code> and run <code>gh auth login</code>.
-            </div>
-          )}
-          <PrInput />
-          {prError && <div className={styles.error}>{prError}</div>}
+          <div className={styles.loadingText}>Loading...</div>
         </div>
       </div>
     )
@@ -135,8 +173,8 @@ export function NarrativeShell(): ReactElement {
 
         {!generating && !generateError && prData.files.length > 0 && (
           <div className={styles.setupActions}>
-            <button className={styles.cancelBtn} onClick={handleCancel} type="button">
-              Cancel
+            <button className={styles.cancelBtn} onClick={handleBack} type="button">
+              Back
             </button>
             <button className={styles.generateBtn} onClick={handleGenerate} type="button">
               Generate Review
@@ -146,8 +184,8 @@ export function NarrativeShell(): ReactElement {
 
         {!generating && !generateError && prData.files.length === 0 && (
           <div className={styles.emptyState}>
-            <span>This PR has no file changes to review.</span>
-            <button className={styles.cancelBtn} onClick={handleCancel} type="button">
+            <span>No file changes to review.</span>
+            <button className={styles.cancelBtn} onClick={handleBack} type="button">
               Back
             </button>
           </div>
