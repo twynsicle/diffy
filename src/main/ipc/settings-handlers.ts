@@ -15,21 +15,11 @@ import {
 } from '../persisted-state'
 import {
   clearApiKey,
-  getApiKey,
   hasApiKey,
   setApiKey,
 } from '../secure-storage'
 
 export function registerSettingsHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_API_KEY, () => {
-    try {
-      return { ok: true, data: getApiKey() }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to get API key'
-      return { ok: false, error: msg }
-    }
-  })
-
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_API_KEY, (_event, key: string) => {
     if (typeof key !== 'string' || key.trim().length === 0) {
       return { ok: false, error: 'API key must be a non-empty string' }

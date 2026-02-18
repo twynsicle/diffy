@@ -42,7 +42,7 @@ export function DiffPanel({ filePath, sectionBadge, onClose }: DiffPanelProps): 
       if (result.ok) {
         void dispatch(loadDiff(lastRequest))
       } else {
-        dispatch(addToast({ type: 'error', message: `Fetch failed: ${result.error}` }))
+        dispatch(addToast({ variant: 'error', message: `Fetch failed: ${result.error}` }))
       }
       setFetching(false)
     })

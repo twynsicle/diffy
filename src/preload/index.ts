@@ -53,7 +53,6 @@ const api: DiffyApi = {
       ipcRenderer.removeListener(IPC_CHANNELS.SHORTCUT_OPEN_SETTINGS, listener)
     }
   },
-  getApiKey: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_API_KEY),
   setApiKey: (key) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_API_KEY, key),
   hasApiKey: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_HAS_API_KEY),
   clearApiKey: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_CLEAR_API_KEY),

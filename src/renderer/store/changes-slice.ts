@@ -118,8 +118,10 @@ const changesSlice = createSlice({
     })
     builder.addCase(refreshStatus.rejected, (state, action) => {
       state.refreshing = false
-      if (action.meta?.arg?.background) {
-        state.pollError = (action.payload as string) ?? 'Git status failed'
+      const isBackgroundRefresh =
+        (action.meta as { arg?: { background?: boolean } } | undefined)?.arg?.background === true
+      if (isBackgroundRefresh) {
+        state.pollError = action.payload ?? 'Git status failed'
       }
     })
     builder.addCase(refreshStatus.fulfilled, (state, action) => {

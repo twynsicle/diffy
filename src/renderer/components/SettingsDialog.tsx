@@ -38,14 +38,10 @@ export function SettingsDialog(): ReactElement | null {
       const hasResult = await window.api.hasApiKey()
       if (hasResult.ok && hasResult.data) {
         setHasKey(true)
-        const getResult = await window.api.getApiKey()
-        if (getResult.ok) {
-          setApiKey(getResult.data)
-        }
       } else {
         setHasKey(false)
-        setApiKey('')
       }
+      setApiKey('')
 
       const modelResult = await window.api.getCliModel()
       if (modelResult.ok) {
@@ -81,9 +77,15 @@ export function SettingsDialog(): ReactElement | null {
 
   const handleSave = useCallback(async () => {
     if (provider === 'api') {
-      if (!apiKey.trim()) return
+      const nextKey = apiKey.trim()
+      if (!nextKey) {
+        if (hasKey) {
+          handleClose()
+        }
+        return
+      }
       setLoading(true)
-      const result = await window.api.setApiKey(apiKey.trim())
+      const result = await window.api.setApiKey(nextKey)
       setLoading(false)
       if (result.ok) {
         dispatch(addToast({ message: 'API key saved', variant: 'info' }))
@@ -102,7 +104,7 @@ export function SettingsDialog(): ReactElement | null {
         dispatch(addToast({ message: result.error, variant: 'error' }))
       }
     }
-  }, [provider, apiKey, cliModel, dispatch, handleClose])
+  }, [provider, apiKey, cliModel, dispatch, handleClose, hasKey])
 
   const handleClear = useCallback(async () => {
     setLoading(true)
@@ -192,7 +194,7 @@ export function SettingsDialog(): ReactElement | null {
               disabled={loading}
               id="api-key-input"
               onChange={(e) => { setApiKey(e.target.value) }}
-              placeholder="sk-ant-..."
+              placeholder={hasKey && !apiKey ? '************' : 'sk-ant-...'}
               ref={inputRef}
               type="password"
               value={apiKey}
@@ -304,7 +306,7 @@ export function SettingsDialog(): ReactElement | null {
           </button>
           <button
             className={styles['saveButton']}
-            disabled={loading || (provider === 'api' && !apiKey.trim())}
+            disabled={loading || (provider === 'api' && !hasKey && !apiKey.trim())}
             onClick={() => { void handleSave() }}
             type="button"
           >
