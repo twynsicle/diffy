@@ -1,7 +1,11 @@
-import { type ReactElement, useEffect, useState } from 'react'
+import { type ReactElement, useEffect } from 'react'
 
 import { isExcludedFromAI } from '@shared/ai-file-filter'
 import type { PrData } from '@shared/types'
+
+import { useAppDispatch } from '../hooks/use-app-dispatch'
+import { useAppSelector } from '../hooks/use-app-selector'
+import { loadSettings, selectExcludedPatterns, selectSettingsLoaded } from '../store/settings-slice'
 
 import styles from './PrSummary.module.css'
 
@@ -26,19 +30,18 @@ const STATUS_LABEL_MAP: Record<string, string> = {
 }
 
 export function PrSummary({ data }: PrSummaryProps): ReactElement {
+  const dispatch = useAppDispatch()
   const totalAdditions = data.files.reduce((sum, f) => sum + f.additions, 0)
   const totalDeletions = data.files.reduce((sum, f) => sum + f.deletions, 0)
 
-  const [userPatterns, setUserPatterns] = useState<string[]>([])
+  const settingsLoaded = useAppSelector(selectSettingsLoaded)
+  const userPatterns = useAppSelector(selectExcludedPatterns)
 
   useEffect(() => {
-    void (async () => {
-      const result = await window.api.getExcludedPatterns()
-      if (result.ok) {
-        setUserPatterns(result.data)
-      }
-    })()
-  }, [])
+    if (!settingsLoaded) {
+      void dispatch(loadSettings())
+    }
+  }, [settingsLoaded, dispatch])
 
   return (
     <div className={styles.summary}>

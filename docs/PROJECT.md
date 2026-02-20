@@ -46,7 +46,7 @@ Diffy is an Electron desktop app for macOS with two modes:
 │                                                               │
 │  ┌──────────────┐  ┌────────────────┐  ┌──────────────────┐ │
 │  │  React UI     │  │  Redux Store   │  │  Monaco Diff     │ │
-│  │  Components   │  │  (6 slices)    │  │  Editor          │ │
+│  │  Components   │  │  (7 slices)    │  │  Editor          │ │
 │  └──────────────┘  └────────────────┘  └──────────────────┘ │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -158,7 +158,7 @@ When in narrative mode with a review loaded, these keys navigate chapters:
 
 ### Claude CLI Client (`claude-cli-client.ts`)
 
-- **Invocation**: `spawn('claude', ['-p', '--system-prompt', system, '--tools', ''])` with user prompt piped via stdin
+- **Invocation**: Uses `spawnRunner` with `claude -p --system-prompt ... --tools ""` and user prompt piped via stdin
 - **Model**: Optional custom model via `--model` flag (from settings)
 - **Timeout**: 3 minutes
 - **Streaming**: stdout `data` events → chunks
@@ -172,7 +172,7 @@ Settings store `aiProvider: 'api' | 'cli'`. The `llm.generateNarrative` IPC hand
 
 ### gh CLI Runner (`gh-runner.ts`)
 
-Uses `spawn('gh', args)` (never `exec`). Three API calls per PR fetch:
+Uses `spawnRunner` (never `exec`). Three API calls per PR fetch:
 
 1. `gh pr view <num> --repo <owner/repo> --json title,body,author,baseRefName,headRefName` — PR metadata
 2. `gh api repos/<owner/repo>/pulls/<num>/files --paginate` — file list with patches
@@ -231,6 +231,7 @@ store
 │   └── refreshing: boolean
 ├── diff
 │   ├── loading: boolean
+│   ├── fetching: boolean
 │   ├── wrapEnabled: boolean
 │   ├── original: string
 │   ├── modified: string
@@ -259,6 +260,15 @@ store
     ├── selectedFile: string | null
     ├── cancelling: boolean
     └── refreshingFiles: boolean
+├── settings
+│   ├── aiProvider: 'api' | 'cli'
+│   ├── hasApiKey: boolean
+│   ├── cliModel: string
+│   ├── cliInstalled: boolean | null
+│   ├── excludedPatterns: string[]
+│   ├── lastPrUrl: string | null
+│   ├── loading: boolean
+│   └── loaded: boolean
 ```
 
 ## Data Flows
@@ -493,7 +503,7 @@ Opened via `Cmd+,` or settings icon in TopBar. Contains:
 - File trees built with path compression (single-child folder merging)
 - `use-diff-loader` aborts in-flight requests when selection changes (prevents stale diffs)
 - `diffSlice` guards on `requestId` to ignore stale fulfilled actions
-- Use `spawn` (not `exec`) for unbounded output and no shell injection risk
+- `spawnRunner` utility centralizes `spawn` boilerplate (timeout, SIGTERM, ENOENT, stdin, streaming, AbortSignal) — used by git-runner, gh-runner, and claude-cli-client
 - Narrative prompt truncates diff to ~80k tokens (320k chars) with smart per-patch truncation
 
 ## Packaging & Distribution
@@ -514,7 +524,7 @@ Opened via `Cmd+,` or settings icon in TopBar. Contains:
 
 ### Why spawn over exec?
 
-`exec` buffers all output into a string, has a default maxBuffer limit, and runs through a shell (injection risk). `spawn` streams output, has no buffer limit, and runs the binary directly.
+`exec` buffers all output into a string, has a default maxBuffer limit, and runs through a shell (injection risk). `spawn` streams output, has no buffer limit, and runs the binary directly. The shared `spawnRunner` utility (`src/main/spawn-runner.ts`) extracts the common boilerplate (Promise wrapper, `settled` guard, timeout/SIGTERM, ENOENT detection, stdin piping, streaming callbacks, AbortSignal support) so that `git-runner`, `gh-runner`, and `claude-cli-client` each focus only on their domain-specific logic.
 
 ### Why porcelain v2 with -z?
 
@@ -522,7 +532,7 @@ Porcelain v2 (`--porcelain=v2`) provides structured, machine-parseable output wi
 
 ### Why Redux Toolkit over lighter state management?
 
-RTK provides structured async thunk patterns that map well to IPC calls, and DevTools integration is valuable during development. The six-slice model has clear boundaries between repo management, diff review, narrative review, and UI state.
+RTK provides structured async thunk patterns that map well to IPC calls, and DevTools integration is valuable during development. The seven-slice model has clear boundaries between repo management, diff review, narrative review, settings, and UI state.
 
 ### Why CSS Modules over other approaches?
 

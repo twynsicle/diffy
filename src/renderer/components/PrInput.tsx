@@ -5,6 +5,7 @@ import { parsePrUrl } from '@shared/parse-pr-url'
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
 import { fetchPr, selectPrLoading, setPrUrl } from '../store/narrative-slice'
+import { loadLastPrUrl, saveLastPrUrl, selectLastPrUrl } from '../store/settings-slice'
 
 import styles from './PrInput.module.css'
 
@@ -15,17 +16,20 @@ type PrInputProps = {
 export function PrInput({ onBack }: PrInputProps): ReactElement {
   const dispatch = useAppDispatch()
   const loading = useAppSelector(selectPrLoading)
+  const lastPrUrl = useAppSelector(selectLastPrUrl)
   const [inputValue, setInputValue] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
 
   useEffect(() => {
-    void (async () => {
-      const lastUrl = await window.api.getLastPrUrl()
-      if (lastUrl) {
-        setInputValue(lastUrl)
-      }
-    })()
-  }, [])
+    void dispatch(loadLastPrUrl())
+  }, [dispatch])
+
+  // Populate input when lastPrUrl loads from store
+  useEffect(() => {
+    if (lastPrUrl && !inputValue) {
+      setInputValue(lastPrUrl)
+    }
+  }, [lastPrUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSubmit(e: FormEvent): void {
     e.preventDefault()
@@ -38,7 +42,7 @@ export function PrInput({ onBack }: PrInputProps): ReactElement {
     }
 
     dispatch(setPrUrl(inputValue.trim()))
-    void window.api.setLastPrUrl(inputValue.trim())
+    void dispatch(saveLastPrUrl(inputValue.trim()))
     void dispatch(fetchPr(ref))
   }
 

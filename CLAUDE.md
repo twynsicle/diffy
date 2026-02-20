@@ -8,7 +8,7 @@ A macOS desktop app for reviewing code changes. Two modes: **Diff Review** (GitK
 - **Build**: electron-vite (Vite-based)
 - **Language**: TypeScript (strict mode)
 - **UI**: React 18+
-- **State**: Redux Toolkit (6 slices: `repo`, `changes`, `diff`, `ui`, `mode`, `narrative`)
+- **State**: Redux Toolkit (7 slices: `repo`, `changes`, `diff`, `ui`, `mode`, `narrative`, `settings`)
 - **Editor**: Monaco Editor (Diff Editor mode)
 - **Styling**: CSS Modules (`.module.css`), Catppuccin Mocha dark theme
 - **Git**: CLI via `child_process.spawn` (never `exec`)
@@ -108,15 +108,16 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 | `index.ts` | Electron app lifecycle, window creation, menu setup |
 | `ipc-handlers.ts` | Composition root — imports and calls 6 domain `register*Handlers` functions, exports `cleanup()` |
 | `repo-state.ts` | Shared `currentRepoRoot` getter/setter used by IPC handler modules |
-| `git-runner.ts` | Execute git commands via `spawn`. Path validation. Returns `Result<string>` |
+| `spawn-runner.ts` | Shared `child_process.spawn` wrapper. Handles timeout, SIGTERM, ENOENT, stdin, streaming stdout, AbortSignal |
+| `git-runner.ts` | Execute git commands via `spawnRunner`. Path validation. Returns `Result<string>` |
 | `parse-status.ts` | Parse `git status --porcelain=v2 -z` output into `FileChange[]` |
 | `file-watcher.ts` | Polling-based watcher (1s `setInterval`). Sends `statusChanged` events |
 | `language-map.ts` | Map file extensions to Monaco language IDs |
 | `detect-binary.ts` | Detect binary files by checking for NUL bytes |
 | `app-menu.ts` | macOS application menu (File, Edit, Window) with keyboard accelerators |
 | `anthropic-client.ts` | Anthropic Messages API client. Streaming SSE, 529 retry with countdown, 2min timeout |
-| `claude-cli-client.ts` | Claude CLI client. Spawns `claude -p` subprocess, streams stdout, 3min timeout |
-| `gh-runner.ts` | GitHub CLI wrapper. `gh pr view`, `gh api` for PR metadata/files/diff, pagination fix |
+| `claude-cli-client.ts` | Claude CLI client. Uses `spawnRunner` with `claude -p`, streams stdout, 3min timeout |
+| `gh-runner.ts` | GitHub CLI wrapper. Uses `spawnRunner` for `gh pr view`, `gh api`. PR metadata/files/diff, pagination fix |
 | `narrative-prompt.ts` | Build system+user prompts for narrative generation. Diff truncation (80k token limit), file filtering |
 | `local-diff-builder.ts` | Build `PrData` from local git state (branch diff vs default branch, uncommitted diff vs HEAD) |
 | `persisted-state.ts` | JSON file persistence in `userData/` (last repo, last PR URL, AI provider, CLI model, excluded patterns) |
@@ -146,13 +147,14 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 
 | File | Purpose |
 |---|---|
-| `index.ts` | Store configuration. Combines 6 slice reducers + error toast middleware |
+| `index.ts` | Store configuration. Combines 7 slice reducers + error toast middleware |
 | `repo-slice.ts` | Repo state: `repoRoot`, `displayName`, open status/error |
 | `changes-slice.ts` | File changes: `staged[]`, `unstaged[]`, selection with persistence logic |
-| `diff-slice.ts` | Diff content: `original`, `modified`, `language`, `isBinary`, `wrapEnabled` |
+| `diff-slice.ts` | Diff content: `original`, `modified`, `language`, `isBinary`, `wrapEnabled`, `fetching`. Includes `fetchOrigin` thunk |
 | `ui-slice.ts` | UI state: toasts, confirm modal, settings dialog open/close |
 | `mode-slice.ts` | App mode: `diff-review` or `narrative-review` |
 | `narrative-slice.ts` | Narrative state: source, PR data, review, stream text, active chapter, generation status |
+| `settings-slice.ts` | Settings state: AI provider, API key status, CLI model, excluded patterns, last PR URL. All settings IPC wrapped in thunks |
 | `error-toast-middleware.ts` | Middleware that auto-creates error toasts from rejected thunks |
 
 ### Renderer — Hooks (`src/renderer/hooks/`)

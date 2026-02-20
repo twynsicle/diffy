@@ -6,6 +6,21 @@ import type { AiProvider } from '@shared/types'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
+import {
+  addExcludedPattern,
+  clearApiKey,
+  loadSettings,
+  removeExcludedPattern,
+  saveAiProvider,
+  saveApiKey,
+  saveCliModel,
+  selectAiProvider,
+  selectCliInstalled,
+  selectCliModel,
+  selectExcludedPatterns,
+  selectHasApiKey,
+  selectSettingsLoading,
+} from '../store/settings-slice'
 import { addToast, closeSettings, selectSettingsOpen } from '../store/ui-slice'
 
 import styles from './SettingsDialog.module.css'
@@ -15,62 +30,35 @@ export function SettingsDialog(): ReactElement | null {
   const isOpen = useAppSelector(selectSettingsOpen)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const [provider, setProvider] = useState<AiProvider>('api')
-  const [apiKey, setApiKey] = useState('')
-  const [hasKey, setHasKey] = useState(false)
-  const [cliModel, setCliModel] = useState('')
-  const [cliInstalled, setCliInstalled] = useState<boolean | null>(null)
-  const [loading, setLoading] = useState(false)
+  const provider = useAppSelector(selectAiProvider)
+  const hasKey = useAppSelector(selectHasApiKey)
+  const storedCliModel = useAppSelector(selectCliModel)
+  const cliInstalled = useAppSelector(selectCliInstalled)
+  const excludedPatterns = useAppSelector(selectExcludedPatterns)
+  const loading = useAppSelector(selectSettingsLoading)
 
-  const [excludedPatterns, setExcludedPatterns] = useState<string[]>([])
+  const [apiKey, setApiKey] = useState('')
+  const [localCliModel, setLocalCliModel] = useState('')
   const [newPattern, setNewPattern] = useState('')
 
   useEffect(() => {
     if (!isOpen) return
+    void dispatch(loadSettings())
+    setApiKey('')
+    setTimeout(() => { inputRef.current?.focus() }, 0)
+  }, [isOpen, dispatch])
 
-    setLoading(true)
-    void (async () => {
-      const providerResult = await window.api.getAiProvider()
-      if (providerResult.ok) {
-        setProvider(providerResult.data)
-      }
-
-      const hasResult = await window.api.hasApiKey()
-      if (hasResult.ok && hasResult.data) {
-        setHasKey(true)
-      } else {
-        setHasKey(false)
-      }
-      setApiKey('')
-
-      const modelResult = await window.api.getCliModel()
-      if (modelResult.ok) {
-        setCliModel(modelResult.data)
-      }
-
-      const cliResult = await window.api.checkClaudeCliInstalled()
-      if (cliResult.ok) {
-        setCliInstalled(cliResult.data)
-      }
-
-      const patternsResult = await window.api.getExcludedPatterns()
-      if (patternsResult.ok) {
-        setExcludedPatterns(patternsResult.data)
-      }
-
-      setLoading(false)
-      setTimeout(() => { inputRef.current?.focus() }, 0)
-    })()
-  }, [isOpen])
+  // Sync local CLI model input when store value loads
+  useEffect(() => {
+    setLocalCliModel(storedCliModel)
+  }, [storedCliModel])
 
   const handleProviderChange = useCallback((newProvider: AiProvider) => {
-    setProvider(newProvider)
-    void window.api.setAiProvider(newProvider)
-  }, [])
+    void dispatch(saveAiProvider(newProvider))
+  }, [dispatch])
 
   const handleClose = useCallback(() => {
     setApiKey('')
-    setHasKey(false)
     setNewPattern('')
     dispatch(closeSettings())
   }, [dispatch])
@@ -84,63 +72,52 @@ export function SettingsDialog(): ReactElement | null {
         }
         return
       }
-      setLoading(true)
-      const result = await window.api.setApiKey(nextKey)
-      setLoading(false)
-      if (result.ok) {
+      try {
+        await dispatch(saveApiKey(nextKey)).unwrap()
         dispatch(addToast({ message: 'API key saved', variant: 'info' }))
         handleClose()
-      } else {
-        dispatch(addToast({ message: result.error, variant: 'error' }))
+      } catch (err) {
+        dispatch(addToast({ message: String(err), variant: 'error' }))
       }
     } else {
-      setLoading(true)
-      const result = await window.api.setCliModel(cliModel.trim())
-      setLoading(false)
-      if (result.ok) {
+      try {
+        await dispatch(saveCliModel(localCliModel.trim())).unwrap()
         dispatch(addToast({ message: 'CLI model saved', variant: 'info' }))
         handleClose()
-      } else {
-        dispatch(addToast({ message: result.error, variant: 'error' }))
+      } catch (err) {
+        dispatch(addToast({ message: String(err), variant: 'error' }))
       }
     }
-  }, [provider, apiKey, cliModel, dispatch, handleClose, hasKey])
+  }, [provider, apiKey, localCliModel, dispatch, handleClose, hasKey])
 
   const handleClear = useCallback(async () => {
-    setLoading(true)
-    const result = await window.api.clearApiKey()
-    setLoading(false)
-    if (result.ok) {
+    try {
+      await dispatch(clearApiKey()).unwrap()
       setApiKey('')
-      setHasKey(false)
       dispatch(addToast({ message: 'API key cleared', variant: 'info' }))
-    } else {
-      dispatch(addToast({ message: result.error, variant: 'error' }))
+    } catch (err) {
+      dispatch(addToast({ message: String(err), variant: 'error' }))
     }
   }, [dispatch])
 
   const handleAddPattern = useCallback(async () => {
     const trimmed = newPattern.trim()
     if (!trimmed || excludedPatterns.includes(trimmed)) return
-    const updated = [...excludedPatterns, trimmed]
-    const result = await window.api.setExcludedPatterns(updated)
-    if (result.ok) {
-      setExcludedPatterns(updated)
+    try {
+      await dispatch(addExcludedPattern(trimmed)).unwrap()
       setNewPattern('')
-    } else {
-      dispatch(addToast({ message: result.error, variant: 'error' }))
+    } catch (err) {
+      dispatch(addToast({ message: String(err), variant: 'error' }))
     }
   }, [newPattern, excludedPatterns, dispatch])
 
   const handleRemovePattern = useCallback(async (pattern: string) => {
-    const updated = excludedPatterns.filter((p) => p !== pattern)
-    const result = await window.api.setExcludedPatterns(updated)
-    if (result.ok) {
-      setExcludedPatterns(updated)
-    } else {
-      dispatch(addToast({ message: result.error, variant: 'error' }))
+    try {
+      await dispatch(removeExcludedPattern(pattern)).unwrap()
+    } catch (err) {
+      dispatch(addToast({ message: String(err), variant: 'error' }))
     }
-  }, [excludedPatterns, dispatch])
+  }, [dispatch])
 
   useEffect(() => {
     if (!isOpen) return
@@ -216,10 +193,10 @@ export function SettingsDialog(): ReactElement | null {
               className={styles['input']}
               disabled={loading}
               id="cli-model-input"
-              onChange={(e) => { setCliModel(e.target.value) }}
+              onChange={(e) => { setLocalCliModel(e.target.value) }}
               placeholder="Leave empty for CLI default"
               type="text"
-              value={cliModel}
+              value={localCliModel}
             />
             <div className={styles['hint']}>
               Requires Claude Code installed. Uses <code>claude -p</code> headless mode.

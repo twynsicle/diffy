@@ -1,58 +1,20 @@
-import { spawn } from 'node:child_process'
-
 import type { PrData, PrFileChange, PrReference, Result } from '@shared/types'
+
+import { spawnRunner } from './spawn-runner'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
-function runGh(args: string[], timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<Result<string>> {
-  return new Promise((res) => {
-    const child = spawn('gh', args)
-
-    const stdoutChunks: Buffer[] = []
-    const stderrChunks: Buffer[] = []
-    let settled = false
-
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true
-        child.kill('SIGTERM')
-        res({ ok: false, error: `gh command timed out after ${String(timeoutMs)}ms` })
-      }
-    }, timeoutMs)
-
-    child.stdout.on('data', (chunk: Buffer) => {
-      stdoutChunks.push(chunk)
-    })
-
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderrChunks.push(chunk)
-    })
-
-    child.on('error', (err) => {
-      if (!settled) {
-        settled = true
-        clearTimeout(timer)
-        if ('code' in err && err.code === 'ENOENT') {
-          res({ ok: false, error: 'ENOENT' })
-        } else {
-          res({ ok: false, error: err.message })
-        }
-      }
-    })
-
-    child.on('close', (code) => {
-      if (!settled) {
-        settled = true
-        clearTimeout(timer)
-        if (code === 0) {
-          res({ ok: true, data: Buffer.concat(stdoutChunks).toString('utf-8') })
-        } else {
-          const stderr = Buffer.concat(stderrChunks).toString('utf-8').trim()
-          res({ ok: false, error: stderr || `gh exited with code ${String(code)}` })
-        }
-      }
-    })
+async function runGh(args: string[], timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<Result<string>> {
+  const result = await spawnRunner({
+    command: 'gh',
+    args,
+    timeoutMs,
+    enoentError: 'ENOENT',
   })
+  if (!result.ok) return result
+  const { exitCode, stdout, stderr } = result.data
+  if (exitCode === 0) return { ok: true, data: stdout }
+  return { ok: false, error: stderr.trim() || `gh exited with code ${String(exitCode)}` }
 }
 
 async function runGhWithRetry(args: string[], timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<Result<string>> {

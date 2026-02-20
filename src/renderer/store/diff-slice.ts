@@ -6,6 +6,7 @@ import type { RootState } from '.'
 
 type DiffState = {
   loading: boolean
+  fetching: boolean
   wrapEnabled: boolean
   original: string
   modified: string
@@ -18,6 +19,7 @@ type DiffState = {
 
 const initialState: DiffState = {
   loading: false,
+  fetching: false,
   wrapEnabled: false,
   original: '',
   modified: '',
@@ -36,6 +38,17 @@ export const loadDiff = createAsyncThunk<
   }
   return result.data
 })
+
+export const fetchOrigin = createAsyncThunk<undefined, undefined, { rejectValue: string }>(
+  'diff/fetchOrigin',
+  async (_, { rejectWithValue }) => {
+    const result = await window.api.fetchOrigin()
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+    return undefined
+  },
+)
 
 const diffSlice = createSlice({
   name: 'diff',
@@ -74,6 +87,16 @@ const diffSlice = createSlice({
       state.loading = false
       state.error = action.payload ?? action.error.message ?? 'Failed to load diff'
     })
+
+    builder.addCase(fetchOrigin.pending, (state) => {
+      state.fetching = true
+    })
+    builder.addCase(fetchOrigin.fulfilled, (state) => {
+      state.fetching = false
+    })
+    builder.addCase(fetchOrigin.rejected, (state) => {
+      state.fetching = false
+    })
   },
 })
 
@@ -88,3 +111,4 @@ export const selectDiffIsBinary = (state: RootState): boolean => state.diff.isBi
 export const selectDiffError = (state: RootState): string | undefined => state.diff.error
 export const selectWrapEnabled = (state: RootState): boolean => state.diff.wrapEnabled
 export const selectDiffLastRequest = (state: RootState): DiffRequest | undefined => state.diff.lastRequest
+export const selectDiffFetching = (state: RootState): boolean => state.diff.fetching

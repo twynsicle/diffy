@@ -1,10 +1,12 @@
-import { type ReactElement, useCallback, useState } from 'react'
+import { type ReactElement, useCallback } from 'react'
 
 import { useAppDispatch } from '../hooks/use-app-dispatch'
 import { useAppSelector } from '../hooks/use-app-selector'
 import {
+  fetchOrigin,
   loadDiff,
   selectDiffError,
+  selectDiffFetching,
   selectDiffIsBinary,
   selectDiffLastRequest,
   selectDiffLoading,
@@ -27,24 +29,23 @@ export function DiffPanel({ filePath, sectionBadge, onClose }: DiffPanelProps): 
   const dispatch = useAppDispatch()
   const wrapEnabled = useAppSelector(selectWrapEnabled)
   const loading = useAppSelector(selectDiffLoading)
+  const fetching = useAppSelector(selectDiffFetching)
   const error = useAppSelector(selectDiffError)
   const isBinary = useAppSelector(selectDiffIsBinary)
   const lastRequest = useAppSelector(selectDiffLastRequest)
-  const [fetching, setFetching] = useState(false)
 
   const isRefNotFoundError = error !== undefined && error.includes('not found locally')
   const canRetry = isRefNotFoundError && lastRequest?.baseRef !== undefined
 
   const handleFetchOrigin = useCallback(() => {
     if (!lastRequest) return
-    setFetching(true)
-    void window.api.fetchOrigin().then((result) => {
-      if (result.ok) {
+    void dispatch(fetchOrigin()).then((action) => {
+      if (fetchOrigin.fulfilled.match(action)) {
         void dispatch(loadDiff(lastRequest))
-      } else {
-        dispatch(addToast({ variant: 'error', message: `Fetch failed: ${result.error}` }))
+      } else if (fetchOrigin.rejected.match(action)) {
+        const message = action.payload ?? 'Fetch failed'
+        dispatch(addToast({ variant: 'error', message: `Fetch failed: ${message}` }))
       }
-      setFetching(false)
     })
   }, [dispatch, lastRequest])
 

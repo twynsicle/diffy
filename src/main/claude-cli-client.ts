@@ -1,37 +1,21 @@
-import { spawn } from 'node:child_process'
-
 import type { PrData, Result } from '@shared/types'
 
 import { parseNarrativeReview, type NarrativeResult } from './anthropic-client'
 import { buildNarrativePrompt } from './narrative-prompt'
 import { getExcludedFilePatterns } from './persisted-state'
+import { spawnRunner } from './spawn-runner'
 
 const TIMEOUT_MS = 180_000
 
 export async function checkClaudeCliInstalled(): Promise<Result<boolean>> {
-  return new Promise((resolve) => {
-    const child = spawn('claude', ['--version'])
-
-    let settled = false
-
-    child.on('error', (err) => {
-      if (!settled) {
-        settled = true
-        if ('code' in err && err.code === 'ENOENT') {
-          resolve({ ok: true, data: false })
-        } else {
-          resolve({ ok: true, data: false })
-        }
-      }
-    })
-
-    child.on('close', (code) => {
-      if (!settled) {
-        settled = true
-        resolve({ ok: true, data: code === 0 })
-      }
-    })
+  const result = await spawnRunner({
+    command: 'claude',
+    args: ['--version'],
+    timeoutMs: 10_000,
+    enoentError: 'NOT_FOUND',
   })
+  if (!result.ok) return { ok: true, data: false }
+  return { ok: true, data: result.data.exitCode === 0 }
 }
 
 export async function generateNarrativeCli(
@@ -48,91 +32,44 @@ export async function generateNarrativeCli(
     args.push('--model', model)
   }
 
-  return new Promise((resolve) => {
-    const child = spawn('claude', args)
+  let accumulated = ''
 
-    let settled = false
-    let accumulated = ''
-
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true
-        child.kill('SIGTERM')
-        resolve({ ok: false, error: 'CLI generation timed out after 3 minutes', wasTruncated })
-      }
-    }, TIMEOUT_MS)
-
-    if (externalSignal) {
-      const onAbort = (): void => {
-        if (!settled) {
-          settled = true
-          clearTimeout(timer)
-          child.kill('SIGTERM')
-          resolve({ ok: false, error: 'Generation cancelled', wasTruncated })
-        }
-      }
-      if (externalSignal.aborted) {
-        onAbort()
-        return
-      }
-      externalSignal.addEventListener('abort', onAbort, { once: true })
-    }
-
-    child.stdout.on('data', (chunk: Buffer) => {
-      const text = chunk.toString('utf-8')
-      accumulated += text
-      onChunk(text)
-    })
-
-    const stderrChunks: Buffer[] = []
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderrChunks.push(chunk)
-    })
-
-    child.on('error', (err) => {
-      if (!settled) {
-        settled = true
-        clearTimeout(timer)
-        if ('code' in err && err.code === 'ENOENT') {
-          resolve({
-            ok: false,
-            error: 'Claude CLI not found. Install Claude Code from https://docs.anthropic.com/en/docs/claude-code',
-            wasTruncated,
-          })
-        } else {
-          resolve({ ok: false, error: `CLI error: ${err.message}`, wasTruncated })
-        }
-      }
-    })
-
-    child.on('close', (code) => {
-      if (!settled) {
-        settled = true
-        clearTimeout(timer)
-
-        if (code !== 0) {
-          const stderr = Buffer.concat(stderrChunks).toString('utf-8').trim()
-          resolve({
-            ok: false,
-            error: stderr || `claude exited with code ${String(code)}`,
-            wasTruncated,
-            rawText: accumulated || undefined,
-          })
-          return
-        }
-
-        const parseResult = parseNarrativeReview(accumulated)
-        if (!parseResult.ok) {
-          resolve({ ...parseResult, wasTruncated, rawText: accumulated })
-          return
-        }
-
-        resolve({ ...parseResult, wasTruncated })
-      }
-    })
-
-    // Pipe user message via stdin to avoid OS arg length limits
-    child.stdin.write(user)
-    child.stdin.end()
+  const result = await spawnRunner({
+    command: 'claude',
+    args,
+    timeoutMs: TIMEOUT_MS,
+    stdin: user,
+    signal: externalSignal,
+    timeoutError: 'CLI generation timed out after 3 minutes',
+    enoentError: 'Claude CLI not found. Install Claude Code from https://docs.anthropic.com/en/docs/claude-code',
+    onStdout: (chunk) => {
+      accumulated += chunk
+      onChunk(chunk)
+    },
   })
+
+  if (!result.ok) {
+    if (result.error === 'Aborted') {
+      return { ok: false, error: 'Generation cancelled', wasTruncated }
+    }
+    return { ok: false, error: result.error, wasTruncated }
+  }
+
+  const { exitCode, stderr } = result.data
+
+  if (exitCode !== 0) {
+    return {
+      ok: false,
+      error: stderr.trim() || `claude exited with code ${String(exitCode)}`,
+      wasTruncated,
+      rawText: accumulated || undefined,
+    }
+  }
+
+  const parseResult = parseNarrativeReview(accumulated)
+  if (!parseResult.ok) {
+    return { ...parseResult, wasTruncated, rawText: accumulated }
+  }
+
+  return { ...parseResult, wasTruncated }
 }

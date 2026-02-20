@@ -1,10 +1,13 @@
-import { spawn } from 'node:child_process'
 import { realpathSync } from 'node:fs'
 import { isAbsolute, normalize, resolve, sep } from 'node:path'
 
 import type { Result } from '@shared/types'
 
+import { spawnRunner } from './spawn-runner'
+
 const DEFAULT_TIMEOUT_MS = 10_000
+const INDEX_LOCK_RETRIES = 3
+const INDEX_LOCK_DELAY_MS = 200
 
 type RunGitOptions = {
   repoRoot: string
@@ -12,55 +15,38 @@ type RunGitOptions = {
   timeoutMs?: number
 }
 
-export function runGit({
+function isIndexLockError(stderr: string): boolean {
+  return stderr.includes('index.lock') && stderr.includes('File exists')
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export async function runGit({
   repoRoot,
   args,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: RunGitOptions): Promise<Result<string>> {
-  return new Promise((res) => {
-    const child = spawn('git', ['-C', repoRoot, ...args])
-
-    const stdoutChunks: Buffer[] = []
-    const stderrChunks: Buffer[] = []
-    let settled = false
-
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true
-        child.kill('SIGTERM')
-        res({ ok: false, error: `Git command timed out after ${String(timeoutMs)}ms` })
-      }
-    }, timeoutMs)
-
-    child.stdout.on('data', (chunk: Buffer) => {
-      stdoutChunks.push(chunk)
+  for (let attempt = 0; attempt <= INDEX_LOCK_RETRIES; attempt++) {
+    const result = await spawnRunner({
+      command: 'git',
+      args: ['-C', repoRoot, ...args],
+      timeoutMs,
     })
+    if (!result.ok) return result
+    const { exitCode, stdout, stderr } = result.data
+    if (exitCode === 0) return { ok: true, data: stdout }
 
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderrChunks.push(chunk)
-    })
+    if (isIndexLockError(stderr) && attempt < INDEX_LOCK_RETRIES) {
+      await delay(INDEX_LOCK_DELAY_MS)
+      continue
+    }
 
-    child.on('error', (err) => {
-      if (!settled) {
-        settled = true
-        clearTimeout(timer)
-        res({ ok: false, error: err.message })
-      }
-    })
+    return { ok: false, error: stderr.trim() || `Git exited with code ${String(exitCode)}` }
+  }
 
-    child.on('close', (code) => {
-      if (!settled) {
-        settled = true
-        clearTimeout(timer)
-        if (code === 0) {
-          res({ ok: true, data: Buffer.concat(stdoutChunks).toString('utf-8') })
-        } else {
-          const stderr = Buffer.concat(stderrChunks).toString('utf-8').trim()
-          res({ ok: false, error: stderr || `Git exited with code ${String(code)}` })
-        }
-      }
-    })
-  })
+  return { ok: false, error: 'Git index.lock retry attempts exhausted' }
 }
 
 export function isPathInsideRepo(repoRoot: string, targetPath: string): boolean {

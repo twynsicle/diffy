@@ -18,6 +18,13 @@ import {
   selectStreamText,
   startNarrativeGeneration,
 } from '../store/narrative-slice'
+import {
+  loadSettings,
+  selectAiProvider,
+  selectCliInstalled,
+  selectHasApiKey,
+  selectSettingsLoaded,
+} from '../store/settings-slice'
 import { addToast } from '../store/ui-slice'
 
 import { ChapterNav } from './ChapterNav'
@@ -43,7 +50,18 @@ export function NarrativeShell(): ReactElement {
   const review = useAppSelector(selectReview)
   const streamText = useAppSelector(selectStreamText)
   const selectedFile = useAppSelector(selectSelectedNarrativeFile)
+  const settingsLoaded = useAppSelector(selectSettingsLoaded)
+  const aiProvider = useAppSelector(selectAiProvider)
+  const hasApiKey = useAppSelector(selectHasApiKey)
+  const cliInstalled = useAppSelector(selectCliInstalled)
   const [showRaw, setShowRaw] = useState(false)
+
+  // Load settings on mount if not already loaded
+  useEffect(() => {
+    if (!settingsLoaded) {
+      void dispatch(loadSettings())
+    }
+  }, [settingsLoaded, dispatch])
 
   // Safety net: if generating is stuck true from a prior session (e.g. app restart)
   // but there's no active request, reset the state so the user isn't stuck.
@@ -56,27 +74,21 @@ export function NarrativeShell(): ReactElement {
 
   const handleGenerate = useCallback(() => {
     if (!prData) return
-    void (async () => {
-      const providerResult = await window.api.getAiProvider()
-      const provider = providerResult.ok ? providerResult.data : 'api'
 
-      if (provider === 'api') {
-        const result = await window.api.hasApiKey()
-        if (!result.ok || !result.data) {
-          dispatch(addToast({ message: 'Set your API key in Settings first', variant: 'error' }))
-          return
-        }
-      } else {
-        const result = await window.api.checkClaudeCliInstalled()
-        if (!result.ok || !result.data) {
-          dispatch(addToast({ message: 'Claude CLI not found. Install Claude Code and try again.', variant: 'error' }))
-          return
-        }
+    if (aiProvider === 'api') {
+      if (!hasApiKey) {
+        dispatch(addToast({ message: 'Set your API key in Settings first', variant: 'error' }))
+        return
       }
+    } else {
+      if (!cliInstalled) {
+        dispatch(addToast({ message: 'Claude CLI not found. Install Claude Code and try again.', variant: 'error' }))
+        return
+      }
+    }
 
-      void dispatch(startNarrativeGeneration(prData))
-    })()
-  }, [dispatch, prData])
+    void dispatch(startNarrativeGeneration(prData))
+  }, [dispatch, prData, aiProvider, hasApiKey, cliInstalled])
 
   const handleRegenerate = useCallback(() => {
     if (!prData) return
