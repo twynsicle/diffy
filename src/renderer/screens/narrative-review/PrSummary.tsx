@@ -3,9 +3,9 @@ import { type ReactElement, useEffect } from 'react'
 import { isExcludedFromAI } from '@shared/ai-file-filter'
 import type { PrData } from '@shared/types'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
-import { loadSettings, selectExcludedPatterns, selectSettingsLoaded } from '../store/settings-slice'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
+import { loadSettings, selectExcludedPatterns, selectSettingsLoaded } from '../../store/settings-slice'
 
 import styles from './PrSummary.module.css'
 

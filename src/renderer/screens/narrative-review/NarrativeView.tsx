@@ -2,9 +2,9 @@ import { type ReactElement, useCallback } from 'react'
 
 import { SUMMARY_SECTION_ID } from '@shared/types'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
-import { useNarrativeDiffLoader } from '../hooks/use-narrative-diff-loader'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
+import { useNarrativeDiffLoader } from '../../hooks/use-narrative-diff-loader'
 import {
   selectActiveChapterId,
   selectChapterList,
@@ -13,10 +13,10 @@ import {
   selectSelectedNarrativeFile,
   setActiveChapter,
   setSelectedFile,
-} from '../store/narrative-slice'
+} from '../../store/narrative-slice'
 
 import { ChapterCard } from './ChapterCard'
-import { DiffPanel } from './DiffPanel'
+import { DiffPanel } from '../../components/DiffPanel'
 import { InsightCallout } from './InsightCallout'
 import { MarkdownText } from './MarkdownText'
 import { SummaryCard } from './SummaryCard'

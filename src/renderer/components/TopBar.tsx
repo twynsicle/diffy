@@ -33,14 +33,14 @@ export function TopBar(): ReactElement {
     <div className={styles.topBar}>
       <div className={styles.trafficLightSpacer} />
       <div className={styles.modeToggle}>
-        {(['diff-review', 'narrative-review'] as const).map((mode: AppMode) => (
+        {(['workspace', 'narrative-review'] as const).map((mode: AppMode) => (
           <button
             key={mode}
             className={`${styles.modeButton} ${activeMode === mode ? styles.modeButtonActive : ''}`}
             onClick={() => dispatch(setMode(mode))}
             type="button"
           >
-            {mode === 'diff-review' ? 'Diff Review' : 'Narrative Review'}
+            {mode === 'workspace' ? 'Workspace' : 'Narrative Review'}
           </button>
         ))}
       </div>

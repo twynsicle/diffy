@@ -1,6 +1,6 @@
 # Diffy — Development Guide
 
-A macOS desktop app for reviewing code changes. Two modes: **Diff Review** (GitKraken-like staged/unstaged file lists with Monaco diff viewer) and **Narrative Review** (AI-generated chapter-based code review summaries from PRs, branches, or uncommitted changes).
+A macOS desktop app for reviewing code changes. Two modes: **Workspace** (GitKraken-like staged/unstaged file lists with Monaco diff viewer) and **Narrative Review** (AI-generated chapter-based code review summaries from PRs, branches, or uncommitted changes).
 
 ## Tech Stack
 
@@ -40,12 +40,15 @@ src/
   main/               # Electron main process (git, AI clients, IPC handlers)
   preload/            # Preload script (typed contextBridge API)
   renderer/
-    components/       # React components (30 files — diff, narrative, shared UI)
+    components/       # Shared/reusable React components (used by both screens)
+    screens/
+      workspace/      # Workspace screen components (WorkspaceShell, SidePane, SectionHeader, ContextMenu)
+      narrative-review/ # Narrative-review screen components (NarrativeShell + 14 children)
     store/            # Redux Toolkit (6 slices + middleware + store config)
     hooks/            # Custom React hooks (11 files)
     utils/            # Pure utility functions (file-tree, truncate-path, parse-diff-chunk)
     styles/           # Global CSS (theme.css, global.css)
-    App.tsx           # Root component — mode switch between DiffReview and NarrativeReview
+    App.tsx           # Root component — mode switch between Workspace and NarrativeReview
     main.tsx          # React entry point
     monaco-setup.ts   # Monaco Editor worker configuration
   shared/             # Types and constants shared across main + renderer
@@ -57,7 +60,7 @@ src/
 
 ## App Modes
 
-**Diff Review** (`diff-review`): The original mode. Opens a git repo, shows staged/unstaged file lists, and displays diffs in Monaco Diff Editor. Supports stage/unstage/discard/delete operations.
+**Workspace** (`workspace`): The original mode. Opens a git repo, shows staged/unstaged file lists, and displays diffs in Monaco Diff Editor. Supports stage/unstage/discard/delete operations.
 
 **Narrative Review** (`narrative-review`): AI-powered mode. Fetches code changes from one of three sources (GitHub PR, branch diff, uncommitted changes), sends them to Claude, and displays a structured review with chapters, insights, and inline diff chunks. See `docs/PROJECT.md` for full architecture.
 
@@ -152,7 +155,7 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 | `changes-slice.ts` | File changes: `staged[]`, `unstaged[]`, selection with persistence logic |
 | `diff-slice.ts` | Diff content: `original`, `modified`, `language`, `isBinary`, `wrapEnabled`, `fetching`. Includes `fetchOrigin` thunk |
 | `ui-slice.ts` | UI state: toasts, confirm modal, settings dialog open/close |
-| `mode-slice.ts` | App mode: `diff-review` or `narrative-review` |
+| `mode-slice.ts` | App mode: `workspace` or `narrative-review` |
 | `narrative-slice.ts` | Narrative state: source, PR data, review, stream text, active chapter, generation status |
 | `settings-slice.ts` | Settings state: AI provider, API key status, CLI model, excluded patterns, last PR URL. All settings IPC wrapped in thunks |
 | `error-toast-middleware.ts` | Middleware that auto-creates error toasts from rejected thunks |
@@ -173,15 +176,16 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 | `use-split-pane.ts` | Drag-to-resize vertical split (staged/unstaged ratio) |
 | `use-resizable-panel.ts` | Drag-to-resize horizontal panel width with localStorage persistence |
 
-### Renderer — Components (`src/renderer/components/`)
+### Renderer — Shared Components (`src/renderer/components/`)
 
-**Shared UI:**
-`TopBar`, `StatusBar`, `SidePane`, `Placeholder`, `BinaryPlaceholder`, `ToastContainer`, `ContextMenu`, `ConfirmModal`, `SettingsDialog`
+`TopBar`, `StatusBar`, `Placeholder`, `ToastContainer`, `ConfirmModal`, `SettingsDialog`, `DiffView`, `DiffPanel`, `FileTree` (both modes), `TreeRow` (both modes, supports `compact` variant)
 
-**Diff Review:**
-`DiffView`, `DiffPanel`, `FileTree` (both modes), `TreeRow` (both modes, supports `compact` variant), `SectionHeader`
+### Renderer — Workspace Screen (`src/renderer/screens/workspace/`)
 
-**Narrative Review:**
+`WorkspaceShell`, `SidePane`, `SectionHeader`, `ContextMenu`
+
+### Renderer — Narrative Review Screen (`src/renderer/screens/narrative-review/`)
+
 `NarrativeShell`, `NarrativeView`, `NarrativeToolbar`, `SourceSelect`, `PrInput`, `ChapterCard`, `ChapterNav`, `ChapterNavBar`, `SummaryCard`, `PrSummary`, `InsightCallout`, `InlineDiffChunk`, `MarkdownText`, `GeneratingOverlay`, `RawResponseModal`
 
 ### Renderer — Utils (`src/renderer/utils/`)

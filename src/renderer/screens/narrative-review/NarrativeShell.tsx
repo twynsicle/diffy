@@ -1,7 +1,7 @@
 import { type ReactElement, useCallback, useEffect, useState } from 'react'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
 import {
   clearPr,
   clearReview,
@@ -17,15 +17,15 @@ import {
   selectSelectedNarrativeFile,
   selectStreamText,
   startNarrativeGeneration,
-} from '../store/narrative-slice'
+} from '../../store/narrative-slice'
 import {
   loadSettings,
   selectAiProvider,
   selectCliInstalled,
   selectHasApiKey,
   selectSettingsLoaded,
-} from '../store/settings-slice'
-import { addToast } from '../store/ui-slice'
+} from '../../store/settings-slice'
+import { addToast } from '../../store/ui-slice'
 
 import { ChapterNav } from './ChapterNav'
 import { ChapterNavBar } from './ChapterNavBar'

@@ -4,7 +4,7 @@ import { DiffEditor } from '@monaco-editor/react'
 
 import type { DiffChunk } from '@shared/types'
 
-import { parseDiffChunk } from '../utils/parse-diff-chunk'
+import { parseDiffChunk } from '../../utils/parse-diff-chunk'
 
 import styles from './InlineDiffChunk.module.css'
 

@@ -1,15 +1,15 @@
 import { type ReactElement, useEffect } from 'react'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
 import {
   checkGhInstalled,
   fetchBranchDiff,
   fetchUncommittedDiff,
   selectGhInstalled,
   setSource,
-} from '../store/narrative-slice'
-import { selectRepoRoot } from '../store/repo-slice'
+} from '../../store/narrative-slice'
+import { selectRepoRoot } from '../../store/repo-slice'
 
 import styles from './SourceSelect.module.css'
 

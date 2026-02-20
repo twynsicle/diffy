@@ -2,9 +2,9 @@ import { type ReactElement, useCallback, useMemo, useState } from 'react'
 
 import { SUMMARY_SECTION_ID } from '@shared/types'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
-import { useResizablePanel } from '../hooks/use-resizable-panel'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
+import { useResizablePanel } from '../../hooks/use-resizable-panel'
 import {
   refreshNarrativeFiles,
   selectActiveChapterId,
@@ -14,11 +14,11 @@ import {
   selectSelectedNarrativeFile,
   setActiveChapter,
   setSelectedFile,
-} from '../store/narrative-slice'
-import { prFileToFileChange } from '../utils/status-adapter'
+} from '../../store/narrative-slice'
+import { prFileToFileChange } from '../../utils/status-adapter'
 
 import styles from './ChapterNav.module.css'
-import { FileTree } from './FileTree'
+import { FileTree } from '../../components/FileTree'
 
 export function ChapterNav(): ReactElement {
   const dispatch = useAppDispatch()

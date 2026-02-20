@@ -8,7 +8,7 @@ type ModeState = {
 }
 
 const initialState: ModeState = {
-  activeMode: 'diff-review',
+  activeMode: 'workspace',
 }
 
 const modeSlice = createSlice({

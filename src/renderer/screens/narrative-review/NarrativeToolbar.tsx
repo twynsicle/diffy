@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 
-import { useAppSelector } from '../hooks/use-app-selector'
-import { selectPrData } from '../store/narrative-slice'
+import { useAppSelector } from '../../hooks/use-app-selector'
+import { selectPrData } from '../../store/narrative-slice'
 
 import styles from './NarrativeToolbar.module.css'
 

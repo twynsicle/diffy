@@ -4,7 +4,7 @@
 
 Diffy is an Electron desktop app for macOS with two modes:
 
-1. **Diff Review** — Review filesystem diffs against git state, stage/unstage files, and iterate. GitKraken-like dark UI.
+1. **Workspace** — Review filesystem diffs against git state, stage/unstage files, and iterate. GitKraken-like dark UI.
 2. **Narrative Review** — Generate AI-powered chapter-based code review summaries from GitHub PRs, local branch diffs, or uncommitted changes.
 
 ## Non-Goals
@@ -53,11 +53,11 @@ Diffy is an Electron desktop app for macOS with two modes:
 
 ## App Modes
 
-The `mode` Redux slice holds the active mode: `'diff-review' | 'narrative-review'`.
+The `mode` Redux slice holds the active mode: `'workspace' | 'narrative-review'`.
 
-### Diff Review Mode
+### Workspace Mode
 
-The original mode. `App.tsx` renders `<MainContent />` (Monaco diff view) + `<SidePane />` (staged/unstaged file trees). The side pane uses `use-split-pane` for the vertical split between staged/unstaged sections and `use-resizable-panel` for horizontal panel width.
+The original mode. `App.tsx` renders `<WorkspaceShell />` which composes `<MainContent />` (Monaco diff view) + `<SidePane />` (staged/unstaged file trees). The side pane uses `use-split-pane` for the vertical split between staged/unstaged sections and `use-resizable-panel` for horizontal panel width.
 
 ### Narrative Review Mode
 
@@ -67,8 +67,8 @@ The original mode. `App.tsx` renders `<MainContent />` (Monaco diff view) + `<Si
 - `NarrativeToolbar` — generate/cancel/regenerate buttons
 - `NarrativeView` — chapter cards with insights and inline diffs
 - `ChapterNav` / `ChapterNavBar` — chapter navigation sidebar
-- `FileTree` (compact variant) — file tree for the PR/diff files (shared with diff-review mode)
-- `DiffPanel` — Monaco diff view for selected file (reused from diff-review mode)
+- `FileTree` (compact variant) — file tree for the PR/diff files (shared with workspace mode)
+- `DiffPanel` — Monaco diff view for selected file (reused from workspace mode)
 
 Mode switching is done via `TopBar`, which dispatches `setMode()`.
 
@@ -244,7 +244,7 @@ store
 │   ├── confirmModal: { open, title, message, onConfirmAction? }
 │   └── settingsOpen: boolean
 ├── mode
-│   └── activeMode: 'diff-review' | 'narrative-review'
+│   └── activeMode: 'workspace' | 'narrative-review'
 └── narrative
     ├── source: 'github-pr' | 'branch-diff' | 'uncommitted' | null
     ├── prUrl: string
@@ -273,7 +273,7 @@ store
 
 ## Data Flows
 
-### Status Refresh Flow (Diff Review)
+### Status Refresh Flow (Workspace)
 
 ```
 File change on disk (or manual Cmd+R)
@@ -287,7 +287,7 @@ File change on disk (or manual Cmd+R)
   → React re-renders file trees
 ```
 
-### Diff Loading Flow (Diff Review)
+### Diff Loading Flow (Workspace)
 
 ```
 User clicks file row in FileTree
@@ -429,12 +429,12 @@ All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same fil
 - **Title bar**: Hidden inset (macOS native), traffic lights on left
 - **Top bar**: Repo selector (folder picker), repo name + path, mode toggle, settings button
 - **Main area**: Layout depends on mode:
-  - *Diff Review*: Monaco Diff Editor (left) + file lists pane (right)
+  - *Workspace*: Monaco Diff Editor (left) + file lists pane (right)
   - *Narrative Review*: Chapter navigation (left) + narrative content (center) + file tree (right, optional)
 - **Status bar**: Bottom bar showing status info
 - **Resizable panes**: Both horizontal (panel width) and vertical (staged/unstaged ratio) with drag handles
 
-### File List Interactions (Diff Review)
+### File List Interactions (Workspace)
 
 - **Click row**: Selects file and loads diff
 - **Hover**: Shows primary action button (Stage for unstaged, Unstage for staged)

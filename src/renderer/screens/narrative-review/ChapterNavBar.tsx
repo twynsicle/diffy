@@ -2,14 +2,14 @@ import { type ReactElement, useCallback } from 'react'
 
 import { SUMMARY_SECTION_ID } from '@shared/types'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
 import {
   selectActiveChapterId,
   selectActiveChapterIndex,
   selectChapterList,
   setActiveChapter,
-} from '../store/narrative-slice'
+} from '../../store/narrative-slice'
 
 import styles from './ChapterNavBar.module.css'
 

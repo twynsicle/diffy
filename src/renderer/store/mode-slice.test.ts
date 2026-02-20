@@ -5,9 +5,9 @@ import type { RootState } from '.'
 import { modeReducer, selectActiveMode, setMode } from './mode-slice'
 
 describe('modeReducer', () => {
-  it('has initial state of diff-review', () => {
+  it('has initial state of workspace', () => {
     const state = modeReducer(undefined, { type: '@@INIT' })
-    expect(state.activeMode).toBe('diff-review')
+    expect(state.activeMode).toBe('workspace')
   })
 
   it('sets mode to narrative-review', () => {
@@ -15,10 +15,10 @@ describe('modeReducer', () => {
     expect(state.activeMode).toBe('narrative-review')
   })
 
-  it('toggles back to diff-review', () => {
+  it('toggles back to workspace', () => {
     const state1 = modeReducer(undefined, setMode('narrative-review'))
-    const state2 = modeReducer(state1, setMode('diff-review'))
-    expect(state2.activeMode).toBe('diff-review')
+    const state2 = modeReducer(state1, setMode('workspace'))
+    expect(state2.activeMode).toBe('workspace')
   })
 })
 

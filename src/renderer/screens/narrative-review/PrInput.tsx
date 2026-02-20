@@ -2,10 +2,10 @@ import { type FormEvent, type ReactElement, useEffect, useState } from 'react'
 
 import { parsePrUrl } from '@shared/parse-pr-url'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
-import { fetchPr, selectPrLoading, setPrUrl } from '../store/narrative-slice'
-import { loadLastPrUrl, saveLastPrUrl, selectLastPrUrl } from '../store/settings-slice'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
+import { fetchPr, selectPrLoading, setPrUrl } from '../../store/narrative-slice'
+import { loadLastPrUrl, saveLastPrUrl, selectLastPrUrl } from '../../store/settings-slice'
 
 import styles from './PrInput.module.css'
 

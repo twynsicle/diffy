@@ -3,23 +3,23 @@ import { useCallback, useMemo, useReducer, useState } from 'react'
 
 import type { FileChange, Section } from '@shared/types'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
-import { useRepoActions } from '../hooks/use-repo-actions'
-import { useResizablePanel } from '../hooks/use-resizable-panel'
-import { useSplitPane } from '../hooks/use-split-pane'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
+import { useRepoActions } from '../../hooks/use-repo-actions'
+import { useResizablePanel } from '../../hooks/use-resizable-panel'
+import { useSplitPane } from '../../hooks/use-split-pane'
 import {
   selectFile,
   selectSelected,
   selectStaged,
   selectUnstaged,
-} from '../store/changes-slice'
-import { showConfirmModal } from '../store/ui-slice'
-import { buildFileTree, collectAllFolderPaths } from '../utils/file-tree'
+} from '../../store/changes-slice'
+import { showConfirmModal } from '../../store/ui-slice'
+import { buildFileTree, collectAllFolderPaths } from '../../utils/file-tree'
 
 import { ContextMenu } from './ContextMenu'
 import type { ContextMenuItem } from './ContextMenu'
-import { FileTree } from './FileTree'
+import { FileTree } from '../../components/FileTree'
 import { SectionHeader } from './SectionHeader'
 import styles from './SidePane.module.css'
 

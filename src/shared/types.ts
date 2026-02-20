@@ -40,7 +40,7 @@ export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }
 
-export type AppMode = 'diff-review' | 'narrative-review'
+export type AppMode = 'workspace' | 'narrative-review'
 
 export type NarrativeSource = 'github-pr' | 'branch-diff' | 'uncommitted'
 

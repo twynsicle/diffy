@@ -1,9 +1,9 @@
 import { type ReactElement, useEffect, useState } from 'react'
 
-import { useAppDispatch } from '../hooks/use-app-dispatch'
-import { useAppSelector } from '../hooks/use-app-selector'
-import { cancelGeneration, selectCancelling } from '../store/narrative-slice'
-import { getAverageDuration } from '../utils/generation-duration'
+import { useAppDispatch } from '../../hooks/use-app-dispatch'
+import { useAppSelector } from '../../hooks/use-app-selector'
+import { cancelGeneration, selectCancelling } from '../../store/narrative-slice'
+import { getAverageDuration } from '../../utils/generation-duration'
 
 import styles from './GeneratingOverlay.module.css'
 
