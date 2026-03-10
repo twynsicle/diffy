@@ -141,9 +141,10 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 
 | File | Purpose |
 |---|---|
-| `ipc.ts` | IPC channel name constants (38 channels) and `DiffyApi` type definition |
-| `types.ts` | Domain types: `FileChange`, `Section`, `DiffContent`, `Result<T>`, `AppMode`, `NarrativeReview`, `PrData`, `PrFileChange`, `DiffChunk`, `Insight`, etc. |
+| `ipc.ts` | IPC channel name constants (39 channels) and `DiffyApi` type definition |
+| `types.ts` | Domain types: `FileChange`, `Section`, `DiffContent`, `DiffRange`, `DiffChunk`, `FileAtRefRequest`, `FileAtRefResult`, `Result<T>`, `AppMode`, `NarrativeReview`, `PrData`, `PrFileChange`, `Insight`, etc. |
 | `ai-file-filter.ts` | Exclude lock files, snapshots, minified assets from AI processing. Supports user-defined patterns |
+| `merge-ranges.ts` | Merge nearby `DiffRange[]` (within configurable gap) and expand with context lines |
 | `parse-pr-url.ts` | Parse `github.com/:owner/:repo/pull/:number` URLs into `PrReference` |
 
 ### Renderer — Store (`src/renderer/store/`)
@@ -194,7 +195,7 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 |---|---|
 | `file-tree.ts` | Build hierarchical file tree from flat `FileChange[]` with path compression |
 | `truncate-path.ts` | Truncate long file paths with ellipsis for display |
-| `parse-diff-chunk.ts` | Split unified diff chunk content into original/modified sides |
+| `parse-diff-chunk.ts` | Split unified diff chunk content into original/modified sides (unused — kept for reference) |
 | `generation-duration.ts` | Record and average narrative generation durations in localStorage |
 | `status-adapter.ts` | Convert PR file statuses to FileChange objects for unified file tree rendering |
 
@@ -202,6 +203,10 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 
 - `docs/PROJECT.md` — Full architecture, data flows, state shape, IPC contract, UX behavior, design decisions
 - `docs/STYLE_GUIDE.md` — Code conventions, naming, patterns, theme reference
+
+## Backward Compatibility
+
+Backward compatibility is **not required**. When changing data shapes, IPC contracts, or persisted formats, update all consumers in the same PR. Do not add fallback paths or compatibility shims for old formats.
 
 ## Documentation Maintenance
 

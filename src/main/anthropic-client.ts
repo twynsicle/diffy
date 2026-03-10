@@ -1,4 +1,5 @@
-import type { Insight, NarrativeReview, PrData, Result } from '@shared/types'
+import { mergeRanges } from '@shared/merge-ranges'
+import type { DiffRange, Insight, NarrativeReview, PrData, Result } from '@shared/types'
 
 import { buildNarrativePrompt } from './narrative-prompt'
 import { getExcludedFilePatterns } from './persisted-state'
@@ -88,19 +89,40 @@ export function parseNarrativeReview(text: string): Result<NarrativeReview> {
       (chunk) =>
         typeof chunk === 'object' &&
         chunk !== null &&
-        typeof (chunk as Record<string, unknown>)['filename'] === 'string' &&
-        typeof (chunk as Record<string, unknown>)['content'] === 'string',
+        typeof (chunk as Record<string, unknown>)['filename'] === 'string',
     )
 
-    // Default missing fields on valid chunks
+    // Normalize and merge ranges on valid chunks
     for (const chunk of ch['diffChunks'] as Record<string, unknown>[]) {
       if (typeof chunk['language'] !== 'string') {
         chunk['language'] = 'plaintext'
       }
-      if (typeof chunk['startLine'] !== 'number') {
-        chunk['startLine'] = 1
+
+      // Normalize ranges array
+      if (!Array.isArray(chunk['ranges'])) {
+        chunk['ranges'] = []
       }
+      const rawRanges = chunk['ranges'] as unknown[]
+      const validRanges: DiffRange[] = rawRanges
+        .filter(
+          (r) =>
+            typeof r === 'object' &&
+            r !== null &&
+            typeof (r as Record<string, unknown>)['startLine'] === 'number' &&
+            typeof (r as Record<string, unknown>)['endLine'] === 'number',
+        )
+        .map((r) => ({
+          startLine: (r as DiffRange).startLine,
+          endLine: (r as DiffRange).endLine,
+        }))
+
+      chunk['ranges'] = mergeRanges(validRanges)
     }
+
+    // Filter out chunks with no valid ranges
+    ch['diffChunks'] = (ch['diffChunks'] as Record<string, unknown>[]).filter(
+      (chunk) => (chunk['ranges'] as DiffRange[]).length > 0,
+    )
   }
 
   return { ok: true, data: parsed as NarrativeReview }

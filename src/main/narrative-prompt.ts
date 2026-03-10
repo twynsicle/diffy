@@ -75,10 +75,11 @@ Output a JSON object wrapped in <narrative_review> tags. The JSON must conform t
       ],
       "diffChunks": [
         {
-          "filename": "string — path of the file",
+          "filename": "string — path of the file (must match a path from the Files Changed list)",
           "language": "string — programming language",
-          "startLine": number,
-          "content": "string — unified diff snippet (use exact diff hunks from the provided diff, preserving +/- prefixes and context lines with a leading space)"
+          "ranges": [
+            { "startLine": "number — first line of the relevant change in the modified file", "endLine": "number — last line of the relevant change in the modified file" }
+          ]
         }
       ]
     }
@@ -95,7 +96,9 @@ Guidelines:
   - "rationale": why this approach was chosen over alternatives
   - "highlight": key change the reviewer should focus on
   - "reference": pointers to related code, docs, or patterns
-- Include the most important diff chunks in each chapter to illustrate the changes. Each chunk's "content" must be an exact subset of the unified diff — keep the +/- prefixes and leading spaces on context lines. Do NOT strip diff markers or output plain code.
+- Each diffChunk should reference files and line ranges from the modified side of the diff. Use the @@ hunk headers and +/- line counts to determine accurate line numbers in the modified file.
+- If two ranges in the same file are within 10 lines of each other, merge them into a single range.
+- A single diffChunk per file per chapter is preferred — combine nearby ranges rather than creating multiple chunks for the same file.
 - Output ONLY the <narrative_review> JSON tags — no other text.`
 
   const shouldExclude = (filename: string): boolean => isExcludedFromAI(filename, userPatterns)

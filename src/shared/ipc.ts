@@ -1,4 +1,4 @@
-import type { AiProvider, DiffContent, DiffRequest, NarrativeReview, PrData, PrReference, RepoStatus, Result } from './types'
+import type { AiProvider, DiffContent, DiffRequest, FileAtRefRequest, FileAtRefResult, NarrativeReview, PrData, PrReference, RepoStatus, Result } from './types'
 
 export const IPC_CHANNELS = {
   REPO_GET_LAST: 'repo.getLast',
@@ -38,6 +38,7 @@ export const IPC_CHANNELS = {
   CLAUDE_CLI_CHECK_INSTALLED: 'claudeCli.checkInstalled',
   GIT_GET_BRANCH_DIFF: 'git.getBranchDiff',
   GIT_GET_UNCOMMITTED_DIFF: 'git.getUncommittedDiff',
+  GIT_GET_FILE_AT_REF: 'git.getFileAtRef',
   GIT_FETCH_ORIGIN: 'git.fetchOrigin',
   GIT_COMMIT: 'git.commit',
   GIT_GET_BRANCH: 'git.getBranch',
@@ -89,6 +90,7 @@ export type DiffyApi = {
   checkClaudeCliInstalled: () => Promise<Result<boolean>>
   getBranchDiff: () => Promise<Result<PrData>>
   getUncommittedDiff: () => Promise<Result<PrData>>
+  getFileAtRef: (request: FileAtRefRequest) => Promise<Result<FileAtRefResult>>
   fetchOrigin: () => Promise<Result<void>>
   commit: (message: string) => Promise<Result<void>>
   getBranch: () => Promise<Result<string>>

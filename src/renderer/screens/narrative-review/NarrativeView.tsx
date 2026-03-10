@@ -1,4 +1,4 @@
-import { type ReactElement, useCallback } from 'react'
+import { type ReactElement, useCallback, useMemo } from 'react'
 
 import { SUMMARY_SECTION_ID } from '@shared/types'
 
@@ -8,6 +8,7 @@ import { useNarrativeDiffLoader } from '../../hooks/use-narrative-diff-loader'
 import {
   selectActiveChapterId,
   selectChapterList,
+  selectNarrativeSource,
   selectPrData,
   selectReview,
   selectSelectedNarrativeFile,
@@ -27,8 +28,22 @@ export function NarrativeView(): ReactElement | null {
   const review = useAppSelector(selectReview)
   const activeChapterId = useAppSelector(selectActiveChapterId)
   const prData = useAppSelector(selectPrData)
+  const source = useAppSelector(selectNarrativeSource)
   const selectedFile = useAppSelector(selectSelectedNarrativeFile)
   const chapters = useAppSelector(selectChapterList)
+
+  const { baseRef, headRef } = useMemo(() => {
+    if (source === 'branch-diff' && prData) {
+      return { baseRef: prData.baseRefName, headRef: 'HEAD' }
+    }
+    if (source === 'uncommitted') {
+      return { baseRef: 'HEAD', headRef: 'WORKTREE' }
+    }
+    if (source === 'github-pr' && prData) {
+      return { baseRef: `origin/${prData.baseRefName}`, headRef: `origin/${prData.headRefName}` }
+    }
+    return { baseRef: 'HEAD', headRef: 'HEAD' }
+  }, [source, prData])
 
   useNarrativeDiffLoader()
 
@@ -89,7 +104,7 @@ export function NarrativeView(): ReactElement | null {
           <div className={styles.srOnly} aria-live="polite">
             {`Chapter: ${activeChapter.title}`}
           </div>
-          <ChapterCard key={activeChapter.id} chapter={activeChapter} />
+          <ChapterCard key={activeChapter.id} chapter={activeChapter} baseRef={baseRef} headRef={headRef} />
         </div>
       </div>
     </div>

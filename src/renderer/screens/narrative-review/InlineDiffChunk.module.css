@@ -32,7 +32,39 @@
   line-height: 1.5;
 }
 
+.expandButton {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-accent);
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--spacing-sm);
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.expandButton:hover {
+  background: var(--bg-hover);
+}
+
 .editorWrapper {
   min-height: 60px;
   padding-top: 4px;
+}
+
+.scrollable {
+  overflow: hidden;
+}
+
+.loadingBody,
+.errorBody {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.errorBody {
+  color: var(--text-error, var(--text-muted));
 }

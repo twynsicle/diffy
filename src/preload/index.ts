@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type { DiffyApi } from '@shared/ipc'
-import type { AiProvider, DiffRequest, NarrativeReview, PrData, PrReference } from '@shared/types'
+import type { AiProvider, DiffRequest, FileAtRefRequest, NarrativeReview, PrData, PrReference } from '@shared/types'
 
 const api: DiffyApi = {
   getLastRepo: () => ipcRenderer.invoke(IPC_CHANNELS.REPO_GET_LAST),
@@ -100,6 +100,8 @@ const api: DiffyApi = {
   setCliModel: (model: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_CLI_MODEL, model),
   checkClaudeCliInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED),
+  getFileAtRef: (request: FileAtRefRequest) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_FILE_AT_REF, request),
   getBranchDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH_DIFF),
   getUncommittedDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_UNCOMMITTED_DIFF),
   fetchOrigin: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_FETCH_ORIGIN),

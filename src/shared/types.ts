@@ -36,6 +36,20 @@ export type DiffContent = {
   isBinary: boolean
 }
 
+export type FileAtRefRequest = {
+  path: string
+  baseRef: string
+  headRef: string
+}
+
+export type FileAtRefResult = {
+  original: string
+  modified: string
+  language: string
+  originalLineCount: number
+  modifiedLineCount: number
+}
+
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }
@@ -68,11 +82,15 @@ export type PrData = {
   diff: string
 }
 
+export type DiffRange = {
+  startLine: number
+  endLine: number
+}
+
 export type DiffChunk = {
   filename: string
   language: string
-  startLine: number
-  content: string
+  ranges: DiffRange[]
 }
 
 export type InsightType = 'context' | 'rationale' | 'highlight' | 'reference'

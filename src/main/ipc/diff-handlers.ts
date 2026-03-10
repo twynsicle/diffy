@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { ipcMain } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
-import type { DiffContent, DiffRequest, Result } from '@shared/types'
+import type { DiffContent, DiffRequest, FileAtRefRequest, FileAtRefResult, Result } from '@shared/types'
 
 import { isBinary } from '../detect-binary'
 import { isPathInsideRepo, runGit } from '../git-runner'
@@ -88,6 +88,60 @@ export function registerDiffHandlers(): void {
       }
 
       return { ok: true, data: { original, modified, language, isBinary: false } }
+    },
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.GIT_GET_FILE_AT_REF,
+    async (_event, request: FileAtRefRequest): Promise<Result<FileAtRefResult>> => {
+      const currentRepoRoot = getCurrentRepoRoot()
+      if (!currentRepoRoot) {
+        return { ok: false, error: 'No repository open' }
+      }
+      if (!isPathInsideRepo(currentRepoRoot, request.path)) {
+        return { ok: false, error: 'Path is outside repository' }
+      }
+
+      const language = detectLanguage(request.path)
+
+      // Verify refs exist locally
+      const refsToCheck = [request.baseRef, request.headRef].filter(
+        (r) => r !== 'HEAD' && r !== 'WORKTREE',
+      )
+      for (const ref of refsToCheck) {
+        const exists = await runGit({ repoRoot: currentRepoRoot, args: ['rev-parse', '--verify', ref] })
+        if (!exists.ok) {
+          return { ok: false, error: `Ref "${ref}" not found locally. Try: git fetch origin` }
+        }
+      }
+
+      const original = await gitShow(currentRepoRoot, `${request.baseRef}:${request.path}`)
+
+      let modified: string
+      if (request.headRef === 'WORKTREE') {
+        try {
+          modified = await readFile(join(currentRepoRoot, request.path), 'utf-8')
+        } catch {
+          modified = ''
+        }
+      } else {
+        modified = await gitShow(currentRepoRoot, `${request.headRef}:${request.path}`)
+      }
+
+      if (isBinary(original) || isBinary(modified)) {
+        return { ok: false, error: 'Binary file — cannot display diff' }
+      }
+
+      return {
+        ok: true,
+        data: {
+          original,
+          modified,
+          language,
+          originalLineCount: original.split('\n').length,
+          modifiedLineCount: modified.split('\n').length,
+        },
+      }
     },
   )
 
