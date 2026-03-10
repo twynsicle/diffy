@@ -136,6 +136,18 @@ describe('parseStatus', () => {
     })
   })
 
+  it('strips trailing slash from untracked directories', () => {
+    const raw = '? www/prs/'
+    const result = parseStatus(raw)
+    expect(result.unstaged).toHaveLength(1)
+    expect(result.unstaged[0]).toMatchObject({
+      path: 'www/prs',
+      section: 'unstaged',
+      isUntracked: true,
+      Y: 'A',
+    })
+  })
+
   it('handles empty tokens from trailing NUL', () => {
     const raw = '? file.ts\0'
     const result = parseStatus(raw)

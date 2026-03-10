@@ -60,7 +60,7 @@ export function parseStatus(raw: string): RepoStatus {
 
     if (recordType === '?') {
       // Untracked: ? <path>
-      const path = token.substring(2)
+      const path = token.substring(2).replace(/\/$/, '')
       unstaged.push(makeFileChange(path, 'unstaged', 'A', { isUntracked: true }))
       i++
       continue

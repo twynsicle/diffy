@@ -101,6 +101,17 @@ export const deleteFile = createAsyncThunk<undefined, string, { rejectValue: str
   },
 )
 
+export const commitChanges = createAsyncThunk<undefined, string, { rejectValue: string }>(
+  'changes/commitChanges',
+  async (message, { rejectWithValue }) => {
+    const result = await window.api.commit(message)
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+    return undefined
+  },
+)
+
 const changesSlice = createSlice({
   name: 'changes',
   initialState,
@@ -166,6 +177,9 @@ const changesSlice = createSlice({
       state.selected = undefined
     })
     builder.addCase(unstageAll.fulfilled, (state) => {
+      state.selected = undefined
+    })
+    builder.addCase(commitChanges.fulfilled, (state) => {
       state.selected = undefined
     })
   },

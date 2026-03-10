@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import { type ReactElement, useEffect } from 'react'
 import { useCallback, useMemo, useReducer, useState } from 'react'
 
 import type { FileChange, Section } from '@shared/types'
@@ -14,9 +14,10 @@ import {
   selectStaged,
   selectUnstaged,
 } from '../../store/changes-slice'
-import { showConfirmModal } from '../../store/ui-slice'
+import { loadCommitPanelVisible, selectCommitPanelVisible, showConfirmModal } from '../../store/ui-slice'
 import { buildFileTree, collectAllFolderPaths } from '../../utils/file-tree'
 
+import { CommitPanel } from './CommitPanel'
 import { ContextMenu } from './ContextMenu'
 import type { ContextMenuItem } from './ContextMenu'
 import { FileTree } from '../../components/FileTree'
@@ -87,12 +88,17 @@ export function SidePane(): ReactElement {
   const staged = useAppSelector(selectStaged)
   const unstaged = useAppSelector(selectUnstaged)
   const selected = useAppSelector(selectSelected)
+  const commitPanelVisible = useAppSelector(selectCommitPanelVisible)
   const {
     stageAndRefresh,
     unstageAndRefresh,
     stageAllAndRefresh,
     unstageAllAndRefresh,
   } = useRepoActions()
+
+  useEffect(() => {
+    void dispatch(loadCommitPanelVisible())
+  }, [dispatch])
 
   const { width, handleMouseDown: handleHorizontalResize } = useResizablePanel({
     defaultWidth: 300,
@@ -306,6 +312,7 @@ export function SidePane(): ReactElement {
           />
         )}
       </div>
+      {commitPanelVisible && <CommitPanel />}
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}

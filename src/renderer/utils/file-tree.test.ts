@@ -85,6 +85,12 @@ describe('buildFileTree', () => {
     ])
   })
 
+  it('skips entries with trailing slash (empty filename)', () => {
+    const tree = buildFileTree([makeFile('www/prs/')])
+    // The trailing slash produces an empty filename — should be skipped
+    expect(tree).toHaveLength(0)
+  })
+
   it('counts files recursively', () => {
     const tree = buildFileTree([
       makeFile('src/components/App.tsx'),

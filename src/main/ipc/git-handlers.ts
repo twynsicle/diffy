@@ -157,6 +157,39 @@ export function registerGitHandlers(): void {
     return { ok: true, data: undefined }
   })
 
+  ipcMain.handle(IPC_CHANNELS.GIT_COMMIT, async (_event, message: string) => {
+    const currentRepoRoot = getCurrentRepoRoot()
+    if (!currentRepoRoot) {
+      return { ok: false, error: 'No repository open' } satisfies Result<never>
+    }
+    if (typeof message !== 'string' || message.trim().length === 0) {
+      return { ok: false, error: 'Commit message must be a non-empty string' } satisfies Result<never>
+    }
+
+    const result = await runGit({
+      repoRoot: currentRepoRoot,
+      args: ['commit', '-m', message],
+    })
+
+    if (!result.ok) return result
+    return { ok: true, data: undefined }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_GET_BRANCH, async () => {
+    const currentRepoRoot = getCurrentRepoRoot()
+    if (!currentRepoRoot) {
+      return { ok: false, error: 'No repository open' } satisfies Result<never>
+    }
+
+    const result = await runGit({
+      repoRoot: currentRepoRoot,
+      args: ['rev-parse', '--abbrev-ref', 'HEAD'],
+    })
+
+    if (!result.ok) return result
+    return { ok: true, data: result.data.trim() }
+  })
+
   ipcMain.handle(IPC_CHANNELS.GIT_FETCH_ORIGIN, async () => {
     const currentRepoRoot = getCurrentRepoRoot()
     if (!currentRepoRoot) {

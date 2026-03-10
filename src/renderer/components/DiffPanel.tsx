@@ -73,16 +73,6 @@ export function DiffPanel({ filePath, sectionBadge, onClose }: DiffPanelProps): 
   return (
     <div className={styles.panel}>
       <div className={styles.toolbar}>
-        {onClose && (
-          <button
-            className={styles.closeBtn}
-            onClick={onClose}
-            type="button"
-            aria-label="Close file diff"
-          >
-            &larr;
-          </button>
-        )}
         <div className={styles.fileInfo}>
           <span className={styles.filePath} title={filePath}>{filePath}</span>
           {sectionBadge && <span className={styles.sectionBadge}>{sectionBadge}</span>}
@@ -95,6 +85,16 @@ export function DiffPanel({ filePath, sectionBadge, onClose }: DiffPanelProps): 
         >
           Wrap
         </button>
+        {onClose && (
+          <button
+            className={styles.closeBtn}
+            onClick={onClose}
+            type="button"
+            aria-label="Close file diff"
+          >
+            &times;
+          </button>
+        )}
       </div>
       {renderContent()}
     </div>

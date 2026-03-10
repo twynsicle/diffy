@@ -96,6 +96,7 @@ export function buildFileTree(files: FileChange[]): TreeNode[] {
   for (const file of files) {
     const parts = file.path.split('/')
     const fileName = parts[parts.length - 1]
+    if (!fileName) continue
 
     let current = root
     for (let i = 0; i < parts.length - 1; i++) {

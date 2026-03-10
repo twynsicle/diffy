@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 
 import { refreshStatus, stageAll, stageFile, unstageAll, unstageFile } from '../store/changes-slice'
-import { openRepo } from '../store/repo-slice'
+import { fetchBranch, openRepo } from '../store/repo-slice'
 
 import { useAppDispatch } from './use-app-dispatch'
 
@@ -22,6 +22,7 @@ export function useRepoActions(): RepoActions {
       const result = await dispatch(openRepo(folderPath))
       if (openRepo.fulfilled.match(result)) {
         void dispatch(refreshStatus())
+        void dispatch(fetchBranch())
       }
     }
   }, [dispatch])

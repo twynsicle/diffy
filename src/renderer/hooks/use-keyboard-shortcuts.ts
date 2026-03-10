@@ -5,7 +5,7 @@ import { useAppSelector } from './use-app-selector'
 import { useRepoActions } from './use-repo-actions'
 import { refreshStatus } from '../store/changes-slice'
 import { selectRepoRoot } from '../store/repo-slice'
-import { openSettings } from '../store/ui-slice'
+import { openSettings, setCommitPanelVisible } from '../store/ui-slice'
 
 export function useKeyboardShortcuts(): void {
   const dispatch = useAppDispatch()
@@ -36,5 +36,15 @@ export function useKeyboardShortcuts(): void {
     })
 
     return unsubSettings
+  }, [dispatch])
+
+  useEffect(() => {
+    const unsub = window.api.onToggleCommitPanel(() => {
+      void window.api.getCommitPanelVisible().then((visible) => {
+        dispatch(setCommitPanelVisible(visible))
+      })
+    })
+
+    return unsub
   }, [dispatch])
 }

@@ -103,6 +103,20 @@ const api: DiffyApi = {
   getBranchDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH_DIFF),
   getUncommittedDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_UNCOMMITTED_DIFF),
   fetchOrigin: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_FETCH_ORIGIN),
+  commit: (message: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, message),
+  getBranch: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH),
+  getCommitPanelVisible: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_COMMIT_PANEL_VISIBLE),
+  setCommitPanelVisible: (visible: boolean) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_COMMIT_PANEL_VISIBLE, visible),
+  onToggleCommitPanel: (callback: () => void) => {
+    const listener = (): void => {
+      callback()
+    }
+    ipcRenderer.on(IPC_CHANNELS.SHORTCUT_TOGGLE_COMMIT_PANEL, listener)
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.SHORTCUT_TOGGLE_COMMIT_PANEL, listener)
+    }
+  },
   onNarrativeTruncationWarning: (callback: (requestId: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, requestId: string): void => {
       callback(requestId)

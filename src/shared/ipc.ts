@@ -39,6 +39,11 @@ export const IPC_CHANNELS = {
   GIT_GET_BRANCH_DIFF: 'git.getBranchDiff',
   GIT_GET_UNCOMMITTED_DIFF: 'git.getUncommittedDiff',
   GIT_FETCH_ORIGIN: 'git.fetchOrigin',
+  GIT_COMMIT: 'git.commit',
+  GIT_GET_BRANCH: 'git.getBranch',
+  SETTINGS_GET_COMMIT_PANEL_VISIBLE: 'settings.getCommitPanelVisible',
+  SETTINGS_SET_COMMIT_PANEL_VISIBLE: 'settings.setCommitPanelVisible',
+  SHORTCUT_TOGGLE_COMMIT_PANEL: 'shortcut.toggleCommitPanel',
 } as const
 
 export type RepoOpenResult = {
@@ -85,4 +90,9 @@ export type DiffyApi = {
   getBranchDiff: () => Promise<Result<PrData>>
   getUncommittedDiff: () => Promise<Result<PrData>>
   fetchOrigin: () => Promise<Result<void>>
+  commit: (message: string) => Promise<Result<void>>
+  getBranch: () => Promise<Result<string>>
+  getCommitPanelVisible: () => Promise<boolean>
+  setCommitPanelVisible: (visible: boolean) => Promise<Result<void>>
+  onToggleCommitPanel: (callback: () => void) => () => void
 }

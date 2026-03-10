@@ -5,6 +5,7 @@ import type { RootState } from '.'
 type RepoState = {
   repoRoot: string | null
   repoDisplayName: string
+  branch: string
   status: 'idle' | 'loading' | 'error'
   error?: string
 }
@@ -12,8 +13,20 @@ type RepoState = {
 const initialState: RepoState = {
   repoRoot: null,
   repoDisplayName: '',
+  branch: '',
   status: 'idle',
 }
+
+export const fetchBranch = createAsyncThunk<string, undefined, { rejectValue: string }>(
+  'repo/fetchBranch',
+  async (_, { rejectWithValue }) => {
+    const result = await window.api.getBranch()
+    if (!result.ok) {
+      return rejectWithValue(result.error)
+    }
+    return result.data
+  },
+)
 
 export const openRepo = createAsyncThunk<
   { repoRoot: string; displayName: string },
@@ -52,6 +65,9 @@ const repoSlice = createSlice({
         state.status = 'error'
         state.error = action.payload ?? 'Failed to open repository'
       })
+      .addCase(fetchBranch.fulfilled, (state, action) => {
+        state.branch = action.payload
+      })
   },
 })
 
@@ -62,3 +78,4 @@ export const selectRepoRoot = (state: RootState): string | null => state.repo.re
 export const selectRepoDisplayName = (state: RootState): string => state.repo.repoDisplayName
 export const selectRepoStatus = (state: RootState): RepoState['status'] => state.repo.status
 export const selectRepoError = (state: RootState): string | undefined => state.repo.error
+export const selectBranch = (state: RootState): string => state.repo.branch

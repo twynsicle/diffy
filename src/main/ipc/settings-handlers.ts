@@ -6,10 +6,12 @@ import type { AiProvider, Result } from '@shared/types'
 import {
   getAiProvider,
   getCliModel,
+  getCommitPanelVisible,
   getExcludedFilePatterns,
   getLastPrUrl,
   setAiProvider,
   setCliModel,
+  setCommitPanelVisible,
   setExcludedFilePatterns,
   setLastPrUrl,
 } from '../persisted-state'
@@ -108,5 +110,17 @@ export function registerSettingsHandlers(): void {
       const msg = err instanceof Error ? err.message : 'Failed to save excluded patterns'
       return { ok: false, error: msg }
     }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_COMMIT_PANEL_VISIBLE, () => {
+    return getCommitPanelVisible()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_COMMIT_PANEL_VISIBLE, (_event, visible: unknown) => {
+    if (typeof visible !== 'boolean') {
+      return { ok: false, error: 'Visibility must be a boolean' } satisfies Result<never>
+    }
+    setCommitPanelVisible(visible)
+    return { ok: true, data: undefined }
   })
 }
