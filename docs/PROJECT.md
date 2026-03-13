@@ -121,7 +121,7 @@ type NarrativeChapter = {
   id: string                       // Slug like 'auth-middleware'
   title: string                    // McKinsey-style actionable takeaway sentence
   insights: Insight[]              // 1-3 per chapter
-  diffChunks: DiffChunk[]          // Relevant unified diff snippets
+  diffChunks: DiffChunk[]          // Chapter-scoped file diffs keyed by resolved hunks
 }
 
 type Insight = {
@@ -132,10 +132,23 @@ type Insight = {
 type DiffChunk = {
   filename: string
   language: string
+  hunks: ResolvedDiffHunk[]
+}
+
+type ResolvedDiffHunk = {
+  id: string
+  fileOrder: number
+  original: DiffLineSpan
+  modified: DiffLineSpan
+}
+
+type DiffLineSpan = {
   startLine: number
-  content: string                  // Unified diff with +/- prefixes
+  lineCount: number
 }
 ```
+
+Narrative inline diffs render one Monaco diff editor per contiguous selected hunk group. Each group is sliced independently on the original and modified sides, then Monaco's `hideUnchangedRegions` support collapses large unchanged gaps within that group while preserving true line alignment.
 
 ### Narrative Keyboard Navigation
 

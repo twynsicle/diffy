@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { recordGenerationDuration } from '../utils/generation-duration'
+import { narrativeDebugLog } from '../utils/narrative-debug'
 import {
   appendStreamText,
   selectCurrentRequestId,
@@ -33,12 +34,17 @@ export function useNarrativeStream(): void {
   useEffect(() => {
     const unsubChunk = window.api.onNarrativeStreamChunk((requestId, chunk) => {
       if (requestIdRef.current !== null && requestId !== requestIdRef.current) return
+      narrativeDebugLog('stream chunk', { requestId, chunkLength: chunk.length })
       dispatch(appendStreamText(chunk))
     })
 
     const unsubComplete = window.api.onNarrativeStreamComplete((requestId, review) => {
       if (requestIdRef.current !== null && requestId !== requestIdRef.current) return
-      console.log('[narrative] review received:', review)
+      narrativeDebugLog('stream complete', {
+        requestId,
+        chapterCount: review.chapters.length,
+        chunkCount: review.chapters.reduce((acc, chapter) => acc + chapter.diffChunks.length, 0),
+      })
       if (startTimeRef.current !== null) {
         recordGenerationDuration(Date.now() - startTimeRef.current)
         startTimeRef.current = null
@@ -48,6 +54,7 @@ export function useNarrativeStream(): void {
 
     const unsubError = window.api.onNarrativeStreamError((requestId, error) => {
       if (requestIdRef.current !== null && requestId !== requestIdRef.current) return
+      narrativeDebugLog('stream error', { requestId, error })
       startTimeRef.current = null
       dispatch(setGenerateError(error))
     })

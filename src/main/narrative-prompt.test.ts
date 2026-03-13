@@ -29,11 +29,12 @@ function makePrData(overrides?: Partial<PrData>): PrData {
 }
 
 describe('buildNarrativePrompt', () => {
-  it('returns an object with system, user, and wasTruncated', () => {
+  it('returns an object with system, user, wasTruncated, and hunkIndex', () => {
     const result = buildNarrativePrompt(makePrData())
     expect(result).toHaveProperty('system')
     expect(result).toHaveProperty('user')
     expect(result).toHaveProperty('wasTruncated')
+    expect(result).toHaveProperty('hunkIndex')
   })
 
   it('system prompt contains narrative review instructions', () => {
@@ -41,6 +42,7 @@ describe('buildNarrativePrompt', () => {
     expect(system).toContain('narrative review')
     expect(system).toContain('<narrative_review>')
     expect(system).toContain('chapters')
+    expect(system).toContain('hunkIds')
   })
 
   it('user prompt includes PR title', () => {
@@ -73,6 +75,13 @@ describe('buildNarrativePrompt', () => {
     const { user } = buildNarrativePrompt(makePrData())
     expect(user).toContain('src/index.ts')
     expect(user).toContain('src/utils.ts')
+  })
+
+  it('includes changed hunk ID catalog in user prompt', () => {
+    const { user } = buildNarrativePrompt(makePrData())
+    expect(user).toContain('Changed Hunks')
+    expect(user).toContain('H0001')
+    expect(user).toContain('H0002')
   })
 
   it('includes file count in user prompt', () => {

@@ -1,6 +1,8 @@
 import type { PrData } from '@shared/types'
 import { isExcludedFromAI } from '@shared/ai-file-filter'
 
+import { buildDiffHunkIndex, type DiffHunkIndex } from './diff-hunk-catalog'
+
 const MAX_DIFF_TOKENS = 80_000
 const CHARS_PER_TOKEN = 4
 const MAX_DIFF_CHARS = MAX_DIFF_TOKENS * CHARS_PER_TOKEN
@@ -55,7 +57,22 @@ function filterDiffPatches(diff: string, shouldExclude: (filename: string) => bo
   return kept.join('')
 }
 
-export function buildNarrativePrompt(prData: PrData, userPatterns?: readonly string[]): { system: string; user: string; wasTruncated: boolean } {
+function formatLineSpan(startLine: number, lineCount: number): string {
+  if (lineCount === 0) {
+    return `L${String(startLine)} (+0)`
+  }
+
+  if (lineCount === 1) {
+    return `L${String(startLine)}`
+  }
+
+  return `L${String(startLine)}-${String(startLine + lineCount - 1)}`
+}
+
+export function buildNarrativePrompt(
+  prData: PrData,
+  userPatterns?: readonly string[],
+): { system: string; user: string; wasTruncated: boolean; hunkIndex: DiffHunkIndex } {
   const system = `You are a senior software engineer reviewing a pull request. Your job is to produce a structured narrative review that organizes the PR changes into logical chapters.
 
 Output a JSON object wrapped in <narrative_review> tags. The JSON must conform to this schema:
@@ -77,9 +94,7 @@ Output a JSON object wrapped in <narrative_review> tags. The JSON must conform t
         {
           "filename": "string — path of the file (must match a path from the Files Changed list)",
           "language": "string — programming language",
-          "ranges": [
-            { "startLine": "number — first line of the relevant change in the modified file", "endLine": "number — last line of the relevant change in the modified file" }
-          ]
+          "hunkIds": ["string — one or more hunk IDs from the Changed Hunks list (example: H0007)"]
         }
       ]
     }
@@ -96,9 +111,9 @@ Guidelines:
   - "rationale": why this approach was chosen over alternatives
   - "highlight": key change the reviewer should focus on
   - "reference": pointers to related code, docs, or patterns
-- Each diffChunk should reference files and line ranges from the modified side of the diff. Use the @@ hunk headers and +/- line counts to determine accurate line numbers in the modified file.
-- If two ranges in the same file are within 10 lines of each other, merge them into a single range.
-- A single diffChunk per file per chapter is preferred — combine nearby ranges rather than creating multiple chunks for the same file.
+- Each diffChunk must use only hunk IDs listed in "Changed Hunks". Do not invent IDs.
+- Keep hunk IDs file-consistent: only use hunk IDs that belong to the same filename as the diffChunk.
+- Prefer one diffChunk per file per chapter; group relevant hunk IDs in that chunk.
 - Output ONLY the <narrative_review> JSON tags — no other text.`
 
   const shouldExclude = (filename: string): boolean => isExcludedFromAI(filename, userPatterns)
@@ -110,6 +125,13 @@ Guidelines:
 
   const filteredDiff = filterDiffPatches(prData.diff, shouldExclude)
   const { result: diff, wasTruncated } = truncateDiff(filteredDiff)
+  const hunkIndex = buildDiffHunkIndex(diff)
+  const hunkCatalog = hunkIndex.hunks.length === 0
+    ? '  (No patch hunks were detected in the provided diff.)'
+    : hunkIndex.hunks
+      .map((hunk) =>
+        `  ${hunk.id}  ${hunk.filename}  ${hunk.header}  original ${formatLineSpan(hunk.original.startLine, hunk.original.lineCount)}  modified ${formatLineSpan(hunk.modified.startLine, hunk.modified.lineCount)}`)
+      .join('\n')
 
   let user = `# Pull Request: ${prData.title}
 
@@ -122,6 +144,9 @@ ${prData.body || '(no description)'}
 ## Files Changed (${String(filteredFiles.length)})
 ${fileList}
 
+## Changed Hunks (Use These IDs in diffChunks.hunkIds)
+${hunkCatalog}
+
 ## Full Diff
 \`\`\`
 ${diff}
@@ -131,5 +156,5 @@ ${diff}
     user += '\n\nNote: Some large file diffs were truncated. Focus your narrative on the available content.'
   }
 
-  return { system, user, wasTruncated }
+  return { system, user, wasTruncated, hunkIndex }
 }

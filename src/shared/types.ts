@@ -87,10 +87,22 @@ export type DiffRange = {
   endLine: number
 }
 
+export type DiffLineSpan = {
+  startLine: number
+  lineCount: number
+}
+
+export type ResolvedDiffHunk = {
+  id: string
+  fileOrder: number
+  original: DiffLineSpan
+  modified: DiffLineSpan
+}
+
 export type DiffChunk = {
   filename: string
   language: string
-  ranges: DiffRange[]
+  hunks: ResolvedDiffHunk[]
 }
 
 export type InsightType = 'context' | 'rationale' | 'highlight' | 'reference'

@@ -3,25 +3,27 @@ import { type ReactElement, useCallback, useEffect, useMemo, useState } from 're
 import { DiffEditor } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
 
-import { expandRanges, mergeRanges } from '@shared/merge-ranges'
-import type { DiffChunk, DiffRange, FileAtRefResult } from '@shared/types'
+import type { DiffChunk, FileAtRefResult } from '@shared/types'
 
 import styles from './InlineDiffChunk.module.css'
+import {
+  buildInlineDiffSnippets,
+  formatSelectedHunkLabel,
+  type InlineDiffSnippet,
+} from './inline-diff-snippets'
+import { narrativeDebugLog } from '../../utils/narrative-debug'
 
-const LINE_HEIGHT = 19
-const EDITOR_PADDING = 10
 const CONTEXT_LINES = 5
-const MAX_COLLAPSED_HEIGHT = 600
-const MAX_EXPANDED_HEIGHT = 800
+const MIN_EDITOR_HEIGHT = 60
+const EDITOR_HEIGHT_PADDING = 12
 
-function extractLines(text: string, startLine: number, endLine: number): string {
-  const lines = text.split('\n')
-  return lines.slice(startLine - 1, endLine).join('\n')
-}
+function buildModelPath(filename: string, snippetKey: string, side: 'original' | 'modified'): string {
+  const encodedPath = filename
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
 
-function countLines(text: string): number {
-  if (text === '') return 0
-  return text.split('\n').length
+  return `file:///__diffy_inline__/${side}/${encodeURIComponent(snippetKey)}/${encodedPath}`
 }
 
 type InlineDiffChunkProps = {
@@ -30,11 +32,120 @@ type InlineDiffChunkProps = {
   headRef: string
 }
 
+function makeOffsetLineNumbers(offset: number): editor.LineNumbersType {
+  return (lineNumber: number): string => String(lineNumber + offset - 1)
+}
+
+type InlineDiffSnippetEditorProps = {
+  chunkFilename: string
+  language: string
+  snippet: InlineDiffSnippet
+  expanded: boolean
+}
+
+function InlineDiffSnippetEditor({
+  chunkFilename,
+  language,
+  snippet,
+  expanded,
+}: InlineDiffSnippetEditorProps): ReactElement {
+  const [diffEditor, setDiffEditor] = useState<editor.IStandaloneDiffEditor | null>(null)
+  const [editorHeight, setEditorHeight] = useState(MIN_EDITOR_HEIGHT)
+
+  useEffect(() => {
+    if (!diffEditor) return
+
+    const originalEditor = diffEditor.getOriginalEditor()
+    const modifiedEditor = diffEditor.getModifiedEditor()
+    const lineNumbers = expanded ? 'on' : 'off'
+
+    originalEditor.updateOptions({
+      lineNumbers: expanded ? lineNumbers : makeOffsetLineNumbers(snippet.originalStartLine),
+    })
+    modifiedEditor.updateOptions({
+      lineNumbers: expanded ? lineNumbers : makeOffsetLineNumbers(snippet.modifiedStartLine),
+    })
+
+    const updateHeight = (): void => {
+      const contentHeight = Math.max(
+        originalEditor.getContentHeight(),
+        modifiedEditor.getContentHeight(),
+        MIN_EDITOR_HEIGHT - EDITOR_HEIGHT_PADDING,
+      )
+      setEditorHeight(contentHeight + EDITOR_HEIGHT_PADDING)
+    }
+
+    const originalDisposable = originalEditor.onDidContentSizeChange(updateHeight)
+    const modifiedDisposable = modifiedEditor.onDidContentSizeChange(updateHeight)
+    const diffDisposable = diffEditor.onDidUpdateDiff(updateHeight)
+
+    updateHeight()
+
+    return () => {
+      originalDisposable.dispose()
+      modifiedDisposable.dispose()
+      diffDisposable.dispose()
+    }
+  }, [
+    diffEditor,
+    expanded,
+    snippet.modifiedStartLine,
+    snippet.originalStartLine,
+  ])
+
+  return (
+    <div
+      className={styles.editorWrapper}
+      style={{ height: editorHeight }}
+    >
+      <DiffEditor
+        original={snippet.original}
+        modified={snippet.modified}
+        language={language}
+        originalLanguage={language}
+        modifiedLanguage={language}
+        originalModelPath={buildModelPath(chunkFilename, snippet.key, 'original')}
+        modifiedModelPath={buildModelPath(chunkFilename, snippet.key, 'modified')}
+        theme="vs-dark"
+        onMount={setDiffEditor}
+        options={{
+          readOnly: true,
+          renderSideBySide: true,
+          minimap: { enabled: false },
+          lineNumbers: expanded ? 'on' : 'off',
+          automaticLayout: true,
+          scrollBeyondLastLine: false,
+          scrollbar: {
+            vertical: 'hidden',
+            horizontal: 'auto',
+            handleMouseWheel: false,
+          },
+          hideUnchangedRegions: expanded
+            ? { enabled: false }
+            : {
+                enabled: true,
+                contextLineCount: CONTEXT_LINES,
+                minimumLineCount: 1,
+                revealLineCount: CONTEXT_LINES,
+              },
+          folding: false,
+          glyphMargin: false,
+          lineDecorationsWidth: 8,
+        }}
+      />
+    </div>
+  )
+}
+
 export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProps): ReactElement {
   const [fileData, setFileData] = useState<FileAtRefResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const chunkHunks = useMemo(
+    () => (Array.isArray((chunk as { hunks?: unknown }).hunks) ? chunk.hunks : []),
+    [chunk],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -58,89 +169,94 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
     return () => { cancelled = true }
   }, [chunk.filename, baseRef, headRef])
 
-  const expandedRanges = useMemo(
-    () => expandRanges(
-      mergeRanges(chunk.ranges),
-      CONTEXT_LINES,
-      fileData?.modifiedLineCount ?? Infinity,
-    ),
-    [chunk.ranges, fileData?.modifiedLineCount],
-  )
-
   const rangeLabel = useMemo(() => {
-    if (expandedRanges.length === 0) return ''
-    if (expandedRanges.length === 1) {
-      return `L${expandedRanges[0].startLine}–${expandedRanges[0].endLine}`
-    }
-    return expandedRanges.map((r) => `L${r.startLine}–${r.endLine}`).join(', ')
-  }, [expandedRanges])
+    if (chunkHunks.length === 0) return ''
+    return formatSelectedHunkLabel(chunkHunks)
+  }, [chunkHunks])
 
-  const { original, modified, startLineOffset } = useMemo(() => {
-    if (!fileData) return { original: '', modified: '', startLineOffset: 1 }
+  const snippets = useMemo<InlineDiffSnippet[]>(() => {
+    if (!fileData) return []
 
     if (expanded) {
-      return {
+      return [{
+        key: 'full-file',
         original: fileData.original,
         modified: fileData.modified,
-        startLineOffset: 1,
-      }
+        originalStartLine: 1,
+        modifiedStartLine: 1,
+      }]
     }
 
-    if (expandedRanges.length === 0) {
-      return { original: '', modified: '', startLineOffset: 1 }
+    const collapsedSnippets = buildInlineDiffSnippets({
+      hunks: chunkHunks,
+      original: fileData.original,
+      modified: fileData.modified,
+      originalLineCount: fileData.originalLineCount,
+      modifiedLineCount: fileData.modifiedLineCount,
+      contextLines: CONTEXT_LINES,
+    })
+
+    if (collapsedSnippets.length > 0) {
+      return collapsedSnippets
     }
 
-    // Combine all expanded ranges into one contiguous block
-    const firstStart = expandedRanges[0].startLine
-    const lastEnd = expandedRanges[expandedRanges.length - 1].endLine
-    const combinedRange: DiffRange = { startLine: firstStart, endLine: lastEnd }
+    // If AI hunks are fully out of bounds, fall back to full-file view instead of rendering an empty diff.
+    return [{
+      key: 'fallback-full-file',
+      original: fileData.original,
+      modified: fileData.modified,
+      originalStartLine: 1,
+      modifiedStartLine: 1,
+    }]
+  }, [chunkHunks, fileData, expanded])
 
-    return {
-      original: extractLines(fileData.original, combinedRange.startLine, Math.min(combinedRange.endLine, fileData.originalLineCount)),
-      modified: extractLines(fileData.modified, combinedRange.startLine, combinedRange.endLine),
-      startLineOffset: combinedRange.startLine,
-    }
-  }, [fileData, expanded, expandedRanges])
+  useEffect(() => {
+    if (!fileData || loading || error) return
 
-  const editorHeight = useMemo(() => {
-    const maxLines = Math.max(countLines(original), countLines(modified), 3)
-    const rawHeight = maxLines * LINE_HEIGHT + EDITOR_PADDING
-    const maxHeight = expanded ? MAX_EXPANDED_HEIGHT : MAX_COLLAPSED_HEIGHT
-    return Math.min(rawHeight, maxHeight)
-  }, [original, modified, expanded])
+    const hasFallback = snippets.some((snippet) => snippet.key === 'fallback-full-file')
 
-  const needsScroll = useMemo(() => {
-    const maxLines = Math.max(countLines(original), countLines(modified), 3)
-    const rawHeight = maxLines * LINE_HEIGHT + EDITOR_PADDING
-    const maxHeight = expanded ? MAX_EXPANDED_HEIGHT : MAX_COLLAPSED_HEIGHT
-    return rawHeight > maxHeight
-  }, [original, modified, expanded])
+    narrativeDebugLog('inline chunk summary', {
+      filename: chunk.filename,
+      baseRef,
+      headRef,
+      expanded,
+      hunks: chunkHunks,
+      fileLineCounts: {
+        original: fileData.originalLineCount,
+        modified: fileData.modifiedLineCount,
+      },
+      snippetCount: snippets.length,
+      usedFallbackFullFile: hasFallback,
+      snippets: snippets.map((snippet) => ({
+        key: snippet.key,
+        originalStartLine: snippet.originalStartLine,
+        modifiedStartLine: snippet.modifiedStartLine,
+      })),
+    })
+  }, [
+    baseRef,
+    chunk.filename,
+    chunkHunks,
+    error,
+    expanded,
+    fileData,
+    headRef,
+    loading,
+    snippets,
+  ])
 
   const handleToggleExpand = useCallback(() => {
     setExpanded((prev) => !prev)
   }, [])
 
-  const handleMount = useCallback((diffEditor: editor.IStandaloneDiffEditor) => {
-    if (!expanded && startLineOffset > 1) {
-      const firstChangeRange = chunk.ranges[0]
-      if (firstChangeRange) {
-        const relLine = firstChangeRange.startLine - startLineOffset + 1
-        diffEditor.getModifiedEditor().revealLineNearTop(Math.max(1, relLine))
-      }
-    }
-  }, [expanded, startLineOffset, chunk.ranges])
-
-  const lineNumbersFn = useCallback(
-    (lineNumber: number): string => String(lineNumber + startLineOffset - 1),
-    [startLineOffset],
-  )
+  const resolvedLanguage = fileData?.language ?? chunk.language
 
   if (loading) {
     return (
       <div className={styles.chunk} role="figure" aria-label={`Diff for ${chunk.filename}`}>
         <div className={styles.header}>
           <span className={styles.filename}>{chunk.filename}</span>
-          <span className={styles.badge}>{chunk.language}</span>
+          <span className={styles.badge}>{resolvedLanguage}</span>
         </div>
         <div className={styles.loadingBody}>Loading…</div>
       </div>
@@ -152,7 +268,7 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
       <div className={styles.chunk} role="figure" aria-label={`Diff for ${chunk.filename}`}>
         <div className={styles.header}>
           <span className={styles.filename}>{chunk.filename}</span>
-          <span className={styles.badge}>{chunk.language}</span>
+          <span className={styles.badge}>{resolvedLanguage}</span>
         </div>
         <div className={styles.errorBody}>{error}</div>
       </div>
@@ -163,7 +279,7 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
     <div className={styles.chunk} role="figure" aria-label={`Diff for ${chunk.filename}`}>
       <div className={styles.header}>
         <span className={styles.filename}>{chunk.filename}</span>
-        <span className={styles.badge}>{chunk.language}</span>
+        <span className={styles.badge}>{resolvedLanguage}</span>
         {!expanded && rangeLabel && <span className={styles.badge}>{rangeLabel}</span>}
         {fileData && (
           <button
@@ -175,36 +291,15 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
           </button>
         )}
       </div>
-      <div
-        className={`${styles.editorWrapper} ${needsScroll ? styles.scrollable : ''}`}
-        style={{ height: editorHeight }}
-      >
-        <DiffEditor
-          original={original}
-          modified={modified}
-          language={chunk.language}
-          theme="vs-dark"
-          keepCurrentOriginalModel={true}
-          keepCurrentModifiedModel={true}
-          onMount={handleMount}
-          options={{
-            readOnly: true,
-            renderSideBySide: true,
-            minimap: { enabled: false },
-            lineNumbers: expanded ? 'on' : lineNumbersFn,
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            scrollbar: {
-              vertical: needsScroll ? 'auto' : 'hidden',
-              horizontal: 'auto',
-              handleMouseWheel: needsScroll,
-            },
-            folding: false,
-            glyphMargin: false,
-            lineDecorationsWidth: 8,
-          }}
+      {snippets.map((snippet) => (
+        <InlineDiffSnippetEditor
+          key={snippet.key}
+          chunkFilename={chunk.filename}
+          language={resolvedLanguage}
+          snippet={snippet}
+          expanded={expanded}
         />
-      </div>
+      ))}
     </div>
   )
 }

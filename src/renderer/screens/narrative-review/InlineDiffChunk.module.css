@@ -54,8 +54,8 @@
   padding-top: 4px;
 }
 
-.scrollable {
-  overflow: hidden;
+.editorWrapper + .editorWrapper {
+  border-top: 1px solid var(--border-subtle);
 }
 
 .loadingBody,

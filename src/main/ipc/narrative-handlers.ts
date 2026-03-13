@@ -5,6 +5,7 @@ import type { PrData, Result } from '@shared/types'
 
 import { generateNarrative } from '../anthropic-client'
 import { checkClaudeCliInstalled, generateNarrativeCli } from '../claude-cli-client'
+import { narrativeDebugLog } from '../narrative-debug'
 import { getAiProvider, getCliModel } from '../persisted-state'
 import { getApiKey } from '../secure-storage'
 
@@ -34,6 +35,14 @@ export function registerNarrativeHandlers(mainWindow: BrowserWindow): { cleanup:
 
     narrativeRequestId += 1
     const requestId = String(narrativeRequestId)
+    narrativeDebugLog('generation requested', {
+      requestId,
+      provider,
+      title: (prData as PrData).title,
+      fileCount: (prData as PrData).files.length,
+      baseRefName: (prData as PrData).baseRefName,
+      headRefName: (prData as PrData).headRefName,
+    })
 
     const controller = new AbortController()
     activeGenerations.set(requestId, controller)
@@ -64,8 +73,18 @@ export function registerNarrativeHandlers(mainWindow: BrowserWindow): { cleanup:
       }
 
       if (result.ok) {
+        narrativeDebugLog('generation completed', {
+          requestId,
+          chapterCount: result.data.chapters.length,
+          wasTruncated: result.wasTruncated === true,
+        })
         mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_COMPLETE, requestId, result.data)
       } else {
+        narrativeDebugLog('generation failed', {
+          requestId,
+          error: result.error,
+          wasTruncated: result.wasTruncated === true,
+        })
         mainWindow.webContents.send(IPC_CHANNELS.LLM_STREAM_ERROR, requestId, result.error)
       }
     })()
@@ -74,6 +93,7 @@ export function registerNarrativeHandlers(mainWindow: BrowserWindow): { cleanup:
   })
 
   ipcMain.handle(IPC_CHANNELS.LLM_CANCEL_GENERATION, (_event, targetRequestId?: string) => {
+    narrativeDebugLog('cancel requested', { targetRequestId })
     if (targetRequestId) {
       const controller = activeGenerations.get(targetRequestId)
       if (controller) {

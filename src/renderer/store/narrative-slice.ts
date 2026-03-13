@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import { createAsyncThunk, createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
 import type { NarrativeReview, NarrativeSource, PrData, PrFileChange, PrReference } from '@shared/types'
 import { SUMMARY_SECTION_ID } from '@shared/types'
@@ -315,8 +315,12 @@ export const selectGenerating = (state: RootState): boolean => state.narrative.g
 export const selectGenerateError = (state: RootState): string | null => state.narrative.generateError
 export const selectStreamText = (state: RootState): string => state.narrative.streamText
 export const selectActiveChapterId = (state: RootState): string | null => state.narrative.activeChapterId
-export const selectChapterList = (state: RootState): { id: string; title: string }[] =>
-  state.narrative.review?.chapters.map((ch) => ({ id: ch.id, title: ch.title })) ?? []
+const EMPTY_CHAPTER_LIST: { id: string; title: string }[] = []
+export const selectChapterList = createSelector(
+  [(state: RootState) => state.narrative.review],
+  (review): { id: string; title: string }[] =>
+    review?.chapters.map((ch) => ({ id: ch.id, title: ch.title })) ?? EMPTY_CHAPTER_LIST,
+)
 export const selectSelectedNarrativeFile = (state: RootState): string | null => state.narrative.selectedFile
 export const selectNarrativeFileList = (state: RootState): PrFileChange[] =>
   state.narrative.prData?.files ?? []

@@ -25,7 +25,7 @@ export async function generateNarrativeCli(
   model?: string,
 ): Promise<NarrativeResult> {
   const userPatterns = getExcludedFilePatterns()
-  const { system, user, wasTruncated } = buildNarrativePrompt(prData, userPatterns)
+  const { system, user, wasTruncated, hunkIndex } = buildNarrativePrompt(prData, userPatterns)
 
   const args = ['-p', '--system-prompt', system, '--tools', '']
   if (model) {
@@ -66,7 +66,7 @@ export async function generateNarrativeCli(
     }
   }
 
-  const parseResult = parseNarrativeReview(accumulated)
+  const parseResult = parseNarrativeReview(accumulated, hunkIndex)
   if (!parseResult.ok) {
     return { ...parseResult, wasTruncated, rawText: accumulated }
   }
