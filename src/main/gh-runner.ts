@@ -4,7 +4,10 @@ import { spawnRunner } from './spawn-runner'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
-async function runGh(args: string[], timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<Result<string>> {
+async function runGh(
+  args: string[],
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<Result<string>> {
   const result = await spawnRunner({
     command: 'gh',
     args,
@@ -17,7 +20,10 @@ async function runGh(args: string[], timeoutMs: number = DEFAULT_TIMEOUT_MS): Pr
   return { ok: false, error: stderr.trim() || `gh exited with code ${String(exitCode)}` }
 }
 
-async function runGhWithRetry(args: string[], timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<Result<string>> {
+async function runGhWithRetry(
+  args: string[],
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<Result<string>> {
   const result = await runGh(args, timeoutMs)
   if (!result.ok && result.error.includes('timed out')) {
     return runGh(args, timeoutMs * 2)
@@ -42,13 +48,23 @@ export async function fetchPrData(ref: PrReference): Promise<Result<PrData>> {
 
   // 1. Fetch PR metadata
   const metaResult = await runGhWithRetry([
-    'pr', 'view', prNum,
-    '--repo', repoFlag,
-    '--json', 'title,body,author,baseRefName,headRefName',
+    'pr',
+    'view',
+    prNum,
+    '--repo',
+    repoFlag,
+    '--json',
+    'title,body,author,baseRefName,headRefName',
   ])
   if (!metaResult.ok) return metaResult
 
-  let meta: { title: string; body: string; author: { login: string }; baseRefName: string; headRefName: string }
+  let meta: {
+    title: string
+    body: string
+    author: { login: string }
+    baseRefName: string
+    headRefName: string
+  }
   try {
     meta = JSON.parse(metaResult.data) as typeof meta
   } catch {
@@ -57,12 +73,19 @@ export async function fetchPrData(ref: PrReference): Promise<Result<PrData>> {
 
   // 2. Fetch PR files
   const filesResult = await runGhWithRetry([
-    'api', `repos/${repoFlag}/pulls/${prNum}/files`,
+    'api',
+    `repos/${repoFlag}/pulls/${prNum}/files`,
     '--paginate',
   ])
   if (!filesResult.ok) return filesResult
 
-  let rawFiles: Array<{ filename: string; status: string; additions: number; deletions: number; patch?: string }>
+  let rawFiles: Array<{
+    filename: string
+    status: string
+    additions: number
+    deletions: number
+    patch?: string
+  }>
   try {
     // gh api --paginate may concatenate JSON arrays as [...][...] in some versions
     const text = filesResult.data.trim()
@@ -85,10 +108,7 @@ export async function fetchPrData(ref: PrReference): Promise<Result<PrData>> {
   }))
 
   // 3. Fetch PR diff
-  const diffResult = await runGhWithRetry([
-    'pr', 'diff', prNum,
-    '--repo', repoFlag,
-  ])
+  const diffResult = await runGhWithRetry(['pr', 'diff', prNum, '--repo', repoFlag])
   if (!diffResult.ok) return diffResult
 
   return {

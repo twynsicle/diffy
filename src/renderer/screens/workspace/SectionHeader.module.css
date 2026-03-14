@@ -43,7 +43,9 @@
   font-size: var(--font-size-sm);
   padding: 2px var(--spacing-xs);
   border-radius: var(--radius-sm);
-  transition: color 0.15s, background-color 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
   margin-right: var(--spacing-xs);
 }
 
@@ -60,7 +62,9 @@
   font-size: var(--font-size-sm);
   padding: 2px var(--spacing-xs);
   border-radius: var(--radius-sm);
-  transition: color 0.15s, background-color 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
 }
 
 .action:hover {

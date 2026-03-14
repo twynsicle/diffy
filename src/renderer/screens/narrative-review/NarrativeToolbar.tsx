@@ -23,11 +23,7 @@ export function NarrativeToolbar({ onRegenerate, onClose }: NarrativeToolbarProp
         )}
       </div>
       <div className={styles.right}>
-        <button
-          className={styles.regenerateBtn}
-          onClick={onRegenerate}
-          type="button"
-        >
+        <button className={styles.regenerateBtn} onClick={onRegenerate} type="button">
           Regenerate
         </button>
         <button

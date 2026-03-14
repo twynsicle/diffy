@@ -92,7 +92,9 @@ describe('spawnRunner', () => {
       command: 'echo',
       args: ['streamed'],
       timeoutMs: 5_000,
-      onStdout: (chunk) => { chunks.push(chunk) },
+      onStdout: (chunk) => {
+        chunks.push(chunk)
+      },
     })
     expect(result.ok).toBe(true)
     if (!result.ok) return
@@ -104,7 +106,9 @@ describe('spawnRunner', () => {
   it('aborts via AbortSignal', async () => {
     const controller = new AbortController()
     // Abort after a short delay
-    setTimeout(() => { controller.abort() }, 50)
+    setTimeout(() => {
+      controller.abort()
+    }, 50)
 
     const result = await spawnRunner({
       command: 'sleep',

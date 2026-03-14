@@ -163,7 +163,10 @@ export function registerGitHandlers(): void {
       return { ok: false, error: 'No repository open' } satisfies Result<never>
     }
     if (typeof message !== 'string' || message.trim().length === 0) {
-      return { ok: false, error: 'Commit message must be a non-empty string' } satisfies Result<never>
+      return {
+        ok: false,
+        error: 'Commit message must be a non-empty string',
+      } satisfies Result<never>
     }
 
     const result = await runGit({

@@ -11,6 +11,7 @@ import {
   selectPrData,
   selectSelectedNarrativeFile,
 } from '../store/narrative-slice'
+import { narrativeDebugLog } from '../utils/narrative-debug'
 
 export function useNarrativeDiffLoader(): void {
   const dispatch = useAppDispatch()
@@ -30,55 +31,94 @@ export function useNarrativeDiffLoader(): void {
   // preventing a flash of empty DiffView
   useLayoutEffect(() => {
     if (!selectedFile) {
+      narrativeDebugLog('diff loader clear', { reason: 'no-selected-file' })
       dispatch(clearDiff())
       return
     }
 
     if (source === 'branch-diff' && prData) {
       // Branch diff: compare base branch vs HEAD
-      void dispatch(loadDiff({
+      narrativeDebugLog('diff loader request', {
+        source,
         path: selectedFile,
-        section: 'unstaged',
         baseRef: prData.baseRefName,
         headRef: 'HEAD',
-      }))
+      })
+      void dispatch(
+        loadDiff({
+          path: selectedFile,
+          section: 'unstaged',
+          baseRef: prData.baseRefName,
+          headRef: 'HEAD',
+        }),
+      )
       return
     }
 
     if (source === 'uncommitted') {
       // Uncommitted: compare HEAD vs worktree (combines staged + unstaged)
-      void dispatch(loadDiff({
+      narrativeDebugLog('diff loader request', {
+        source,
         path: selectedFile,
-        section: 'unstaged',
         baseRef: 'HEAD',
         headRef: 'WORKTREE',
-      }))
+      })
+      void dispatch(
+        loadDiff({
+          path: selectedFile,
+          section: 'unstaged',
+          baseRef: 'HEAD',
+          headRef: 'WORKTREE',
+        }),
+      )
       return
     }
 
     if (source === 'github-pr' && prData) {
       // GitHub PR: try to compare base ref vs head ref locally
-      void dispatch(loadDiff({
+      narrativeDebugLog('diff loader request', {
+        source,
         path: selectedFile,
-        section: 'unstaged',
         baseRef: `origin/${prData.baseRefName}`,
         headRef: `origin/${prData.headRefName}`,
-      }))
+      })
+      void dispatch(
+        loadDiff({
+          path: selectedFile,
+          section: 'unstaged',
+          baseRef: `origin/${prData.baseRefName}`,
+          headRef: `origin/${prData.headRefName}`,
+        }),
+      )
       return
     }
 
     // Fallback: try staged/unstaged lookup (original behavior)
     const stagedFile = stagedRef.current.find((f) => f.path === selectedFile)
     if (stagedFile) {
-      void dispatch(loadDiff({ path: selectedFile, section: 'staged', origPath: stagedFile.origPath }))
+      narrativeDebugLog('diff loader request', {
+        source: 'fallback-staged',
+        path: selectedFile,
+        origPath: stagedFile.origPath,
+      })
+      void dispatch(
+        loadDiff({ path: selectedFile, section: 'staged', origPath: stagedFile.origPath }),
+      )
       return
     }
 
     const unstagedFile = unstagedRef.current.find((f) => f.path === selectedFile)
-    void dispatch(loadDiff({
+    narrativeDebugLog('diff loader request', {
+      source: 'fallback-unstaged',
       path: selectedFile,
-      section: 'unstaged',
       origPath: unstagedFile?.origPath,
-    }))
+    })
+    void dispatch(
+      loadDiff({
+        path: selectedFile,
+        section: 'unstaged',
+        origPath: unstagedFile?.origPath,
+      }),
+    )
   }, [dispatch, selectedFile, source, prData])
 }

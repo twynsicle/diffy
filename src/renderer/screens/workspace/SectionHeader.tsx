@@ -27,9 +27,7 @@ export function SectionHeader({
 }: SectionHeaderProps): ReactElement {
   return (
     <div className={styles.header} onClick={onToggleCollapse} role="button" tabIndex={0}>
-      <span className={styles.chevron}>
-        {isCollapsed ? '\u25B8' : '\u25BE'}
-      </span>
+      <span className={styles.chevron}>{isCollapsed ? '\u25B8' : '\u25BE'}</span>
       <span className={styles.label}>
         {label} <span className={styles.count}>({count})</span>
       </span>

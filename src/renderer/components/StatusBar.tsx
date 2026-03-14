@@ -13,14 +13,23 @@ export function StatusBar(): ReactElement {
   const { openAndRefresh } = useRepoActions()
 
   return (
-    <div className={styles.statusBar} onClick={() => void openAndRefresh()} role="button" tabIndex={0}>
+    <div
+      className={styles.statusBar}
+      onClick={() => void openAndRefresh()}
+      role="button"
+      tabIndex={0}
+    >
       {repoRoot ? (
-        <span className={styles.repoPath} title={repoRoot}>{repoRoot}</span>
+        <span className={styles.repoPath} title={repoRoot}>
+          {repoRoot}
+        </span>
       ) : (
         <span className={styles.noRepo}>No repository open</span>
       )}
       {pollError && (
-        <span className={styles.healthWarning} title={pollError}>Git status unavailable</span>
+        <span className={styles.healthWarning} title={pollError}>
+          Git status unavailable
+        </span>
       )}
     </div>
   )

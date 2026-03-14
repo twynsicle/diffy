@@ -5,7 +5,11 @@ import type { PrData } from '@shared/types'
 
 import { useAppDispatch } from '../../hooks/use-app-dispatch'
 import { useAppSelector } from '../../hooks/use-app-selector'
-import { loadSettings, selectExcludedPatterns, selectSettingsLoaded } from '../../store/settings-slice'
+import {
+  loadSettings,
+  selectExcludedPatterns,
+  selectSettingsLoaded,
+} from '../../store/settings-slice'
 
 import styles from './PrSummary.module.css'
 

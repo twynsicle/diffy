@@ -52,14 +52,21 @@ export function ConfirmModal(): ReactElement | null {
     }
 
     document.addEventListener('keydown', handleKeyDown)
-    return () => { document.removeEventListener('keydown', handleKeyDown) }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [modal.open, handleCancel, handleConfirm])
 
   if (!modal.open) return null
 
   return createPortal(
     <div className={styles['backdrop']} onClick={handleCancel}>
-      <div className={styles['modal']} onClick={(e) => { e.stopPropagation() }}>
+      <div
+        className={styles['modal']}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+      >
         <div className={styles['title']}>{modal.title}</div>
         <div className={styles['message']}>{modal.message}</div>
         <div className={styles['actions']}>

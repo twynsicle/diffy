@@ -1,6 +1,8 @@
 import type { PrData } from '@shared/types'
 import { isExcludedFromAI } from '@shared/ai-file-filter'
 
+import { buildDiffHunkIndex, type DiffHunkIndex } from './diff-hunk-catalog'
+
 const MAX_DIFF_TOKENS = 80_000
 const CHARS_PER_TOKEN = 4
 const MAX_DIFF_CHARS = MAX_DIFF_TOKENS * CHARS_PER_TOKEN
@@ -39,7 +41,10 @@ function truncateDiff(diff: string): { result: string; wasTruncated: boolean } {
 
   const result = truncated.join('')
   if (result.length > MAX_DIFF_CHARS) {
-    return { result: result.slice(0, MAX_DIFF_CHARS) + '\n[... diff truncated due to size ...]', wasTruncated: true }
+    return {
+      result: result.slice(0, MAX_DIFF_CHARS) + '\n[... diff truncated due to size ...]',
+      wasTruncated: true,
+    }
   }
   return { result, wasTruncated: true }
 }
@@ -55,7 +60,22 @@ function filterDiffPatches(diff: string, shouldExclude: (filename: string) => bo
   return kept.join('')
 }
 
-export function buildNarrativePrompt(prData: PrData, userPatterns?: readonly string[]): { system: string; user: string; wasTruncated: boolean } {
+function formatLineSpan(startLine: number, lineCount: number): string {
+  if (lineCount === 0) {
+    return `L${String(startLine)} (+0)`
+  }
+
+  if (lineCount === 1) {
+    return `L${String(startLine)}`
+  }
+
+  return `L${String(startLine)}-${String(startLine + lineCount - 1)}`
+}
+
+export function buildNarrativePrompt(
+  prData: PrData,
+  userPatterns?: readonly string[],
+): { system: string; user: string; wasTruncated: boolean; hunkIndex: DiffHunkIndex } {
   const system = `You are a senior software engineer reviewing a pull request. Your job is to produce a structured narrative review that organizes the PR changes into logical chapters.
 
 Output a JSON object wrapped in <narrative_review> tags. The JSON must conform to this schema:
@@ -75,10 +95,9 @@ Output a JSON object wrapped in <narrative_review> tags. The JSON must conform t
       ],
       "diffChunks": [
         {
-          "filename": "string — path of the file",
+          "filename": "string — path of the file (must match a path from the Files Changed list)",
           "language": "string — programming language",
-          "startLine": number,
-          "content": "string — unified diff snippet (use exact diff hunks from the provided diff, preserving +/- prefixes and context lines with a leading space)"
+          "hunkIds": ["string — one or more hunk IDs from the Changed Hunks list (example: H0007)"]
         }
       ]
     }
@@ -95,18 +114,33 @@ Guidelines:
   - "rationale": why this approach was chosen over alternatives
   - "highlight": key change the reviewer should focus on
   - "reference": pointers to related code, docs, or patterns
-- Include the most important diff chunks in each chapter to illustrate the changes. Each chunk's "content" must be an exact subset of the unified diff — keep the +/- prefixes and leading spaces on context lines. Do NOT strip diff markers or output plain code.
+- Each diffChunk must use only hunk IDs listed in "Changed Hunks". Do not invent IDs.
+- Keep hunk IDs file-consistent: only use hunk IDs that belong to the same filename as the diffChunk.
+- Prefer one diffChunk per file per chapter; group relevant hunk IDs in that chunk.
 - Output ONLY the <narrative_review> JSON tags — no other text.`
 
   const shouldExclude = (filename: string): boolean => isExcludedFromAI(filename, userPatterns)
   const filteredFiles = prData.files.filter((f) => !shouldExclude(f.filename))
 
   const fileList = filteredFiles
-    .map((f) => `  ${f.status.padEnd(10)} +${String(f.additions)}/-${String(f.deletions)}  ${f.filename}`)
+    .map(
+      (f) =>
+        `  ${f.status.padEnd(10)} +${String(f.additions)}/-${String(f.deletions)}  ${f.filename}`,
+    )
     .join('\n')
 
   const filteredDiff = filterDiffPatches(prData.diff, shouldExclude)
   const { result: diff, wasTruncated } = truncateDiff(filteredDiff)
+  const hunkIndex = buildDiffHunkIndex(diff)
+  const hunkCatalog =
+    hunkIndex.hunks.length === 0
+      ? '  (No patch hunks were detected in the provided diff.)'
+      : hunkIndex.hunks
+          .map(
+            (hunk) =>
+              `  ${hunk.id}  ${hunk.filename}  ${hunk.header}  original ${formatLineSpan(hunk.original.startLine, hunk.original.lineCount)}  modified ${formatLineSpan(hunk.modified.startLine, hunk.modified.lineCount)}`,
+          )
+          .join('\n')
 
   let user = `# Pull Request: ${prData.title}
 
@@ -119,14 +153,18 @@ ${prData.body || '(no description)'}
 ## Files Changed (${String(filteredFiles.length)})
 ${fileList}
 
+## Changed Hunks (Use These IDs in diffChunks.hunkIds)
+${hunkCatalog}
+
 ## Full Diff
 \`\`\`
 ${diff}
 \`\`\``
 
   if (wasTruncated) {
-    user += '\n\nNote: Some large file diffs were truncated. Focus your narrative on the available content.'
+    user +=
+      '\n\nNote: Some large file diffs were truncated. Focus your narrative on the available content.'
   }
 
-  return { system, user, wasTruncated }
+  return { system, user, wasTruncated, hunkIndex }
 }

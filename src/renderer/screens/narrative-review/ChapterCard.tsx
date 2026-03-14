@@ -7,24 +7,22 @@ import { InlineDiffChunk } from './InlineDiffChunk'
 
 type ChapterCardProps = {
   chapter: NarrativeChapter
+  baseRef: string
+  headRef: string
 }
 
-export function ChapterCard({ chapter }: ChapterCardProps): ReactElement {
+export function ChapterCard({ chapter, baseRef, headRef }: ChapterCardProps): ReactElement {
   return (
     <article
       id={`chapter-${chapter.id}`}
       className={styles.card}
       aria-labelledby={`chapter-heading-${chapter.id}`}
     >
-      <h2
-        id={`chapter-heading-${chapter.id}`}
-        className={styles.title}
-        tabIndex={-1}
-      >
+      <h2 id={`chapter-heading-${chapter.id}`} className={styles.title} tabIndex={-1}>
         {chapter.title}
       </h2>
       {chapter.diffChunks.map((chunk, i) => (
-        <InlineDiffChunk key={i} chunk={chunk} />
+        <InlineDiffChunk key={i} chunk={chunk} baseRef={baseRef} headRef={headRef} />
       ))}
     </article>
   )

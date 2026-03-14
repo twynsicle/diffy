@@ -4,7 +4,11 @@ import { addToast } from './ui-slice'
 
 export const errorToastMiddleware: Middleware = (storeApi) => (next) => (action) => {
   const result = next(action)
-  const act = action as { type?: string; payload?: unknown; meta?: { arg?: { background?: boolean } } }
+  const act = action as {
+    type?: string
+    payload?: unknown
+    meta?: { arg?: { background?: boolean } }
+  }
   if (
     typeof act.type === 'string' &&
     act.type.endsWith('/rejected') &&

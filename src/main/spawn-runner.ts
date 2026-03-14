@@ -20,16 +20,7 @@ export type SpawnResult = {
 }
 
 export function spawnRunner(options: SpawnRunnerOptions): Promise<Result<SpawnResult>> {
-  const {
-    command,
-    args,
-    timeoutMs,
-    stdin,
-    signal,
-    onStdout,
-    enoentError,
-    timeoutError,
-  } = options
+  const { command, args, timeoutMs, stdin, signal, onStdout, enoentError, timeoutError } = options
 
   return new Promise((res) => {
     const child = spawn(command, args)

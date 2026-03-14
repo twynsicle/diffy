@@ -58,10 +58,7 @@ export function TreeRow({
   if (row.kind === 'folder') {
     const { node, isExpanded } = row
 
-    const folderClass = [
-      styles['row'],
-      isCompact ? styles['compact'] : '',
-    ]
+    const folderClass = [styles['row'], isCompact ? styles['compact'] : '']
       .filter(Boolean)
       .join(' ')
 
@@ -69,13 +66,13 @@ export function TreeRow({
       <div
         className={folderClass}
         style={{ ...style, paddingLeft: indent + (isCompact ? 12 : 8) }}
-        onClick={() => { onToggleFolder(node.path) }}
+        onClick={() => {
+          onToggleFolder(node.path)
+        }}
         role="treeitem"
         aria-expanded={isExpanded}
       >
-        <span className={styles['chevron']}>
-          {isExpanded ? '\u25BE' : '\u25B8'}
-        </span>
+        <span className={styles['chevron']}>{isExpanded ? '\u25BE' : '\u25B8'}</span>
         <span className={styles['folderName']} title={node.path}>
           {node.name} <span className={styles['fileCount']}>({node.fileCount})</span>
         </span>
@@ -113,7 +110,9 @@ export function TreeRow({
     <div
       className={rowClass}
       style={{ ...style, paddingLeft: indent + (isCompact ? 12 : 8) }}
-      onClick={() => { onSelect(file.path, file.section, file.origPath) }}
+      onClick={() => {
+        onSelect(file.path, file.section, file.origPath)
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
         onContextMenu?.(file, e.clientX, e.clientY)

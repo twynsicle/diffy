@@ -76,9 +76,10 @@ describe('parseStatus', () => {
   })
 
   it('parses rename entry (type 2)', () => {
-    const raw = ['2 R. N... 100644 100644 100644 abc123 def456 R100 new-name.ts', 'old-name.ts'].join(
-      '\0',
-    )
+    const raw = [
+      '2 R. N... 100644 100644 100644 abc123 def456 R100 new-name.ts',
+      'old-name.ts',
+    ].join('\0')
     const result = parseStatus(raw)
     expect(result.staged).toHaveLength(1)
     expect(result.unstaged).toHaveLength(0)
@@ -121,7 +122,11 @@ describe('parseStatus', () => {
   })
 
   it('skips header entries', () => {
-    const raw = ['# branch.oid abc123', '# branch.head main', '1 M. N... 100644 100644 100644 abc123 def456 file.ts'].join('\0')
+    const raw = [
+      '# branch.oid abc123',
+      '# branch.head main',
+      '1 M. N... 100644 100644 100644 abc123 def456 file.ts',
+    ].join('\0')
     const result = parseStatus(raw)
     expect(result.staged).toHaveLength(1)
     expect(result.unstaged).toHaveLength(0)

@@ -13,20 +13,20 @@
 
 ### Naming
 
-| Thing | Convention | Example |
-|---|---|---|
-| Files (utilities, modules) | `kebab-case.ts` | `git-runner.ts`, `file-watcher.ts` |
-| Files (React components) | `PascalCase.tsx` | `FileTree.tsx`, `DiffView.tsx` |
-| Files (CSS Modules) | `PascalCase.module.css` | `FileTree.module.css` |
-| Files (test) | `*.test.ts` / `*.test.tsx` | `git-runner.test.ts` |
-| Types / Interfaces | `PascalCase` | `FileChange`, `DiffContent`, `NarrativeReview` |
-| Functions / Variables | `camelCase` | `parseStatus`, `repoRoot` |
-| Constants | `UPPER_SNAKE_CASE` | `MAX_DEBOUNCE_MS`, `IPC_CHANNELS` |
-| React Components | `PascalCase` | `TreeRow`, `ChapterCard` |
-| Redux Slices | `camelCase` + `Slice` suffix | `repoSlice`, `narrativeSlice` |
-| Redux Thunks | `camelCase` (verb-first) | `refreshStatus`, `fetchPr`, `startNarrativeGeneration` |
-| CSS Module classes | `camelCase` | `.fileRow`, `.statusBadge` |
-| IPC channels | `dot.separated` | `git.stageFile`, `llm.generateNarrative` |
+| Thing                      | Convention                   | Example                                                |
+| -------------------------- | ---------------------------- | ------------------------------------------------------ |
+| Files (utilities, modules) | `kebab-case.ts`              | `git-runner.ts`, `file-watcher.ts`                     |
+| Files (React components)   | `PascalCase.tsx`             | `FileTree.tsx`, `DiffView.tsx`                         |
+| Files (CSS Modules)        | `PascalCase.module.css`      | `FileTree.module.css`                                  |
+| Files (test)               | `*.test.ts` / `*.test.tsx`   | `git-runner.test.ts`                                   |
+| Types / Interfaces         | `PascalCase`                 | `FileChange`, `DiffContent`, `NarrativeReview`         |
+| Functions / Variables      | `camelCase`                  | `parseStatus`, `repoRoot`                              |
+| Constants                  | `UPPER_SNAKE_CASE`           | `MAX_DEBOUNCE_MS`, `IPC_CHANNELS`                      |
+| React Components           | `PascalCase`                 | `TreeRow`, `ChapterCard`                               |
+| Redux Slices               | `camelCase` + `Slice` suffix | `repoSlice`, `narrativeSlice`                          |
+| Redux Thunks               | `camelCase` (verb-first)     | `refreshStatus`, `fetchPr`, `startNarrativeGeneration` |
+| CSS Module classes         | `camelCase`                  | `.fileRow`, `.statusBadge`                             |
+| IPC channels               | `dot.separated`              | `git.stageFile`, `llm.generateNarrative`               |
 
 ### Imports
 
@@ -50,6 +50,7 @@ import styles from './FileTree.module.css'
 ```
 
 Use path aliases configured in tsconfig:
+
 - `@main/*` → `src/main/*`
 - `@preload/*` → `src/preload/*`
 - `@renderer/*` → `src/renderer/*`
@@ -81,10 +82,12 @@ export function TreeRow({ file, isSelected, onSelect }: TreeRowProps): React.Rea
 
 ```tsx
 // In parent (prop name)
-<TreeRow onSelect={handleFileSelect} />
+;<TreeRow onSelect={handleFileSelect} />
 
 // In child (handler implementation)
-function handleClick() { onSelect(file.path, file.section) }
+function handleClick() {
+  onSelect(file.path, file.section)
+}
 ```
 
 ### State Management
@@ -99,6 +102,7 @@ function handleClick() { onSelect(file.path, file.section) }
 ### File Organization
 
 CSS Module files are co-located with their component:
+
 ```
 components/
   FileTree.tsx
@@ -110,6 +114,7 @@ components/
 ```
 
 Utility files go in `utils/`:
+
 ```
 utils/
   file-tree.ts
@@ -124,11 +129,16 @@ utils/
 
 ```css
 /* TreeRow.module.css */
-.row { }
-.row.selected { }
-.statusBadge { }
-.fileName { }
-.hoverAction { }
+.row {
+}
+.row.selected {
+}
+.statusBadge {
+}
+.fileName {
+}
+.hoverAction {
+}
 ```
 
 ```tsx
@@ -204,13 +214,13 @@ Components reference these variables — never hardcode colors.
 
 File status badges use theme variables for consistent color coding:
 
-| Status | Badge | Variable | Color |
-|---|---|---|---|
-| A (added) | Green | `--success` | `#a6e3a1` |
-| M (modified) | Yellow | `--warning` | `#f9e2af` |
-| D (deleted) | Red | `--danger` | `#f38ba8` |
-| R (renamed) | Blue | `--accent` | `#89b4fa` |
-| ? (untracked) | Gray | `--text-muted` | `#6c7086` |
+| Status        | Badge  | Variable       | Color     |
+| ------------- | ------ | -------------- | --------- |
+| A (added)     | Green  | `--success`    | `#a6e3a1` |
+| M (modified)  | Yellow | `--warning`    | `#f9e2af` |
+| D (deleted)   | Red    | `--danger`     | `#f38ba8` |
+| R (renamed)   | Blue   | `--accent`     | `#89b4fa` |
+| ? (untracked) | Gray   | `--text-muted` | `#6c7086` |
 
 ### Design Reference
 

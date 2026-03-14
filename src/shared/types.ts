@@ -36,9 +36,21 @@ export type DiffContent = {
   isBinary: boolean
 }
 
-export type Result<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string }
+export type FileAtRefRequest = {
+  path: string
+  baseRef: string
+  headRef: string
+}
+
+export type FileAtRefResult = {
+  original: string
+  modified: string
+  language: string
+  originalLineCount: number
+  modifiedLineCount: number
+}
+
+export type Result<T> = { ok: true; data: T } | { ok: false; error: string }
 
 export type AppMode = 'workspace' | 'narrative-review'
 
@@ -49,6 +61,21 @@ export type PrReference = {
   repo: string
   number: number
 }
+
+export type BranchNarrativeCacheMetadata = {
+  source: 'branch-diff'
+  branchName: string
+  headSha: string
+  baseSha: string
+}
+
+export type UncommittedNarrativeCacheMetadata = {
+  source: 'uncommitted'
+  headSha: string
+  diffHash: string
+}
+
+export type PrDataCacheMetadata = BranchNarrativeCacheMetadata | UncommittedNarrativeCacheMetadata
 
 export type PrFileChange = {
   filename: string
@@ -66,13 +93,30 @@ export type PrData = {
   headRefName: string
   files: PrFileChange[]
   diff: string
+  cacheMetadata?: PrDataCacheMetadata
+}
+
+export type DiffRange = {
+  startLine: number
+  endLine: number
+}
+
+export type DiffLineSpan = {
+  startLine: number
+  lineCount: number
+}
+
+export type ResolvedDiffHunk = {
+  id: string
+  fileOrder: number
+  original: DiffLineSpan
+  modified: DiffLineSpan
 }
 
 export type DiffChunk = {
   filename: string
   language: string
-  startLine: number
-  content: string
+  hunks: ResolvedDiffHunk[]
 }
 
 export type InsightType = 'context' | 'rationale' | 'highlight' | 'reference'
@@ -95,4 +139,48 @@ export type NarrativeReview = {
   prTitle: string
   overviewSummary: string
   chapters: NarrativeChapter[]
+}
+
+export type GithubPrNarrativeCacheContext = {
+  source: 'github-pr'
+}
+
+export type BranchNarrativeCacheContext = {
+  source: 'branch-diff'
+  branchName: string
+  headSha: string
+  baseSha: string
+}
+
+export type UncommittedNarrativeCacheContext = {
+  source: 'uncommitted'
+  headSha: string
+  diffHash: string
+}
+
+export type NarrativeCacheContext =
+  | GithubPrNarrativeCacheContext
+  | BranchNarrativeCacheContext
+  | UncommittedNarrativeCacheContext
+
+export type NarrativeGenerationRequest = {
+  source: NarrativeSource
+  prData: PrData
+  prRef?: PrReference
+  cacheContext: NarrativeCacheContext
+}
+
+export type NarrativeCacheLookup = {
+  source: NarrativeSource
+  prRef?: PrReference
+  cacheContext?: NarrativeCacheContext
+}
+
+export type NarrativeReviewCacheEntry = {
+  source: NarrativeSource
+  cachedAt: string
+  prData: PrData
+  review: NarrativeReview
+  prRef?: PrReference
+  cacheContext: NarrativeCacheContext
 }

@@ -91,7 +91,13 @@ describe('uiReducer', () => {
 
 describe('ui selectors', () => {
   it('selectToasts returns toasts array', () => {
-    const state = { ui: { toasts: [{ id: '1', message: 'hi', variant: 'info' as const }], confirmModal: { open: false, title: '', message: '' }, settingsOpen: false } } as RootState
+    const state = {
+      ui: {
+        toasts: [{ id: '1', message: 'hi', variant: 'info' as const }],
+        confirmModal: { open: false, title: '', message: '' },
+        settingsOpen: false,
+      },
+    } as RootState
     expect(selectToasts(state)).toHaveLength(1)
   })
 
@@ -102,7 +108,9 @@ describe('ui selectors', () => {
   })
 
   it('selectSettingsOpen returns the settings open flag', () => {
-    const state = { ui: { toasts: [], confirmModal: { open: false, title: '', message: '' }, settingsOpen: true } } as RootState
+    const state = {
+      ui: { toasts: [], confirmModal: { open: false, title: '', message: '' }, settingsOpen: true },
+    } as RootState
     expect(selectSettingsOpen(state)).toBe(true)
   })
 })

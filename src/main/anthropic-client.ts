@@ -1,6 +1,8 @@
-import type { Insight, NarrativeReview, PrData, Result } from '@shared/types'
+import type { Insight, NarrativeReview, PrData, ResolvedDiffHunk, Result } from '@shared/types'
 
 import { buildNarrativePrompt } from './narrative-prompt'
+import type { DiffHunkIndex } from './diff-hunk-catalog'
+import { narrativeDebugLog } from './narrative-debug'
 import { getExcludedFilePatterns } from './persisted-state'
 
 const API_URL = 'https://api.anthropic.com/v1/messages'
@@ -22,7 +24,50 @@ function parseHttpError(status: number): string {
   }
 }
 
-export function parseNarrativeReview(text: string): Result<NarrativeReview> {
+function extractHunksFromHunkIds(
+  chunk: Record<string, unknown>,
+  hunkIndex: DiffHunkIndex | undefined,
+  chapterId: string,
+): ResolvedDiffHunk[] {
+  if (!hunkIndex) return []
+  if (!Array.isArray(chunk['hunkIds'])) return []
+
+  const filename = typeof chunk['filename'] === 'string' ? chunk['filename'] : ''
+  const hunkIds = (chunk['hunkIds'] as unknown[]).filter(
+    (id): id is string => typeof id === 'string',
+  )
+  const dedupedHunks = new Map<string, ResolvedDiffHunk>()
+
+  for (const hunkId of hunkIds) {
+    const hunk = hunkIndex.byId[hunkId]
+    if (!hunk) {
+      narrativeDebugLog('unknown hunk id in response', { chapterId, filename, hunkId })
+      continue
+    }
+    if (hunk.filename !== filename) {
+      narrativeDebugLog('hunk id filename mismatch', {
+        chapterId,
+        filename,
+        hunkId,
+        hunkFilename: hunk.filename,
+      })
+      continue
+    }
+    dedupedHunks.set(hunk.id, {
+      id: hunk.id,
+      fileOrder: hunk.fileOrder,
+      original: { ...hunk.original },
+      modified: { ...hunk.modified },
+    })
+  }
+
+  return [...dedupedHunks.values()].sort((a, b) => a.fileOrder - b.fileOrder)
+}
+
+export function parseNarrativeReview(
+  text: string,
+  hunkIndex?: DiffHunkIndex,
+): Result<NarrativeReview> {
   const startTag = '<narrative_review>'
   const endTag = '</narrative_review>'
   const startIdx = text.indexOf(startTag)
@@ -57,6 +102,7 @@ export function parseNarrativeReview(text: string): Result<NarrativeReview> {
 
   for (let i = 0; i < rawChapters.length; i++) {
     const ch = rawChapters[i]
+    const chapterId = typeof ch['id'] === 'string' ? ch['id'] : `chapter-${String(i + 1)}`
 
     // Ensure id and title
     if (typeof ch['id'] !== 'string' || ch['id'].length === 0) {
@@ -77,7 +123,11 @@ export function parseNarrativeReview(text: string): Result<NarrativeReview> {
       ch['insights'] = []
     }
     ch['insights'] = (ch['insights'] as unknown[]).filter(
-      (ins) => typeof ins === 'object' && ins !== null && typeof (ins as Record<string, unknown>)['type'] === 'string' && typeof (ins as Record<string, unknown>)['text'] === 'string',
+      (ins) =>
+        typeof ins === 'object' &&
+        ins !== null &&
+        typeof (ins as Record<string, unknown>)['type'] === 'string' &&
+        typeof (ins as Record<string, unknown>)['text'] === 'string',
     )
 
     // Ensure diffChunks is an array and filter invalid entries
@@ -88,20 +138,44 @@ export function parseNarrativeReview(text: string): Result<NarrativeReview> {
       (chunk) =>
         typeof chunk === 'object' &&
         chunk !== null &&
-        typeof (chunk as Record<string, unknown>)['filename'] === 'string' &&
-        typeof (chunk as Record<string, unknown>)['content'] === 'string',
+        typeof (chunk as Record<string, unknown>)['filename'] === 'string',
     )
 
-    // Default missing fields on valid chunks
+    // Resolve hunk IDs on valid chunks.
     for (const chunk of ch['diffChunks'] as Record<string, unknown>[]) {
       if (typeof chunk['language'] !== 'string') {
         chunk['language'] = 'plaintext'
       }
-      if (typeof chunk['startLine'] !== 'number') {
-        chunk['startLine'] = 1
-      }
+
+      const resolvedHunks = extractHunksFromHunkIds(chunk, hunkIndex, chapterId)
+      chunk['hunks'] = resolvedHunks
+
+      narrativeDebugLog('normalized chunk hunks', {
+        chapterId,
+        filename: chunk['filename'],
+        hunkIdCount: Array.isArray(chunk['hunkIds']) ? chunk['hunkIds'].length : 0,
+        resolvedHunkCount: resolvedHunks.length,
+        fileOrders: resolvedHunks.map((hunk) => hunk.fileOrder),
+      })
+    }
+
+    // Filter out chunks with no valid hunks.
+    const beforeFilterCount = (ch['diffChunks'] as Record<string, unknown>[]).length
+    ch['diffChunks'] = (ch['diffChunks'] as Record<string, unknown>[]).filter(
+      (chunk) => Array.isArray(chunk['hunks']) && (chunk['hunks'] as ResolvedDiffHunk[]).length > 0,
+    )
+    const afterFilterCount = (ch['diffChunks'] as Record<string, unknown>[]).length
+    if (afterFilterCount < beforeFilterCount) {
+      narrativeDebugLog('dropped chunks with empty hunks', {
+        chapterId,
+        dropped: beforeFilterCount - afterFilterCount,
+      })
     }
   }
+
+  narrativeDebugLog('parsed narrative review', {
+    chapterCount: (parsed as NarrativeReview).chapters.length,
+  })
 
   return { ok: true, data: parsed as NarrativeReview }
 }
@@ -121,12 +195,18 @@ async function doStreamRequest(
   }, TIMEOUT_MS)
 
   if (externalSignal) {
-    const onAbort = (): void => { controller.abort() }
+    const onAbort = (): void => {
+      controller.abort()
+    }
     externalSignal.addEventListener('abort', onAbort, { once: true })
     // Clean up if we finish before external abort
-    controller.signal.addEventListener('abort', () => {
-      externalSignal.removeEventListener('abort', onAbort)
-    }, { once: true })
+    controller.signal.addEventListener(
+      'abort',
+      () => {
+        externalSignal.removeEventListener('abort', onAbort)
+      },
+      { once: true },
+    )
   }
 
   let response: Response
@@ -236,7 +316,7 @@ export async function generateNarrative(
   externalSignal?: AbortSignal,
 ): Promise<NarrativeResult> {
   const userPatterns = getExcludedFilePatterns()
-  const { system, user, wasTruncated } = buildNarrativePrompt(prData, userPatterns)
+  const { system, user, wasTruncated, hunkIndex } = buildNarrativePrompt(prData, userPatterns)
 
   let streamResult = await doStreamRequest(system, user, apiKey, onChunk, externalSignal)
 
@@ -248,7 +328,9 @@ export async function generateNarrative(
         return { ok: false, error: 'Generation cancelled' }
       }
       onChunk(`\n[API busy — retrying in ${String(s)}s...]\n`)
-      await new Promise((resolve) => { setTimeout(resolve, 1000) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000)
+      })
     }
     streamResult = await doStreamRequest(system, user, apiKey, onChunk, externalSignal)
     if (streamResult.error === '529') {
@@ -257,10 +339,15 @@ export async function generateNarrative(
   }
 
   if (streamResult.error) {
-    return { ok: false, error: streamResult.error, wasTruncated, rawText: streamResult.accumulated || undefined }
+    return {
+      ok: false,
+      error: streamResult.error,
+      wasTruncated,
+      rawText: streamResult.accumulated || undefined,
+    }
   }
 
-  const parseResult = parseNarrativeReview(streamResult.accumulated)
+  const parseResult = parseNarrativeReview(streamResult.accumulated, hunkIndex)
 
   if (!parseResult.ok) {
     return { ...parseResult, wasTruncated, rawText: streamResult.accumulated }

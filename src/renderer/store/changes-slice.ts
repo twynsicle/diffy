@@ -141,7 +141,9 @@ const changesSlice = createSlice({
 
       // Snapshot old section list before overwriting for next-file logic
       const oldSectionFiles = state.selected
-        ? (state.selected.section === 'staged' ? [...state.staged] : [...state.unstaged])
+        ? state.selected.section === 'staged'
+          ? [...state.staged]
+          : [...state.unstaged]
         : []
 
       state.staged = action.payload.staged
@@ -151,20 +153,14 @@ const changesSlice = createSlice({
       // Selection persistence: advance to next file when selected file leaves section
       if (state.selected) {
         const { path, section } = state.selected
-        const remaining =
-          section === 'staged'
-            ? action.payload.staged
-            : action.payload.unstaged
+        const remaining = section === 'staged' ? action.payload.staged : action.payload.unstaged
 
         if (remaining.some((f) => f.path === path)) {
           // Still in same section — keep
         } else if (remaining.length > 0) {
           // File left section (staged/unstaged/discarded) — select next file
           const oldIndex = oldSectionFiles.findIndex((f) => f.path === path)
-          const nextIndex = Math.min(
-            oldIndex >= 0 ? oldIndex : 0,
-            remaining.length - 1,
-          )
+          const nextIndex = Math.min(oldIndex >= 0 ? oldIndex : 0, remaining.length - 1)
           const next = remaining[nextIndex]
           state.selected = { path: next.path, section, origPath: next.origPath }
         } else {

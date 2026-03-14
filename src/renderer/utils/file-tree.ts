@@ -119,10 +119,7 @@ export function buildFileTree(files: FileChange[]): TreeNode[] {
   return rawToTree(root, '')
 }
 
-export function flattenTree(
-  roots: TreeNode[],
-  collapsedPaths: ReadonlySet<string>,
-): FlatRow[] {
+export function flattenTree(roots: TreeNode[], collapsedPaths: ReadonlySet<string>): FlatRow[] {
   const rows: FlatRow[] = []
 
   function walk(nodes: TreeNode[], depth: number): void {

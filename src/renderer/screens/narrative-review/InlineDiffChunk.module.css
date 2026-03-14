@@ -32,7 +32,88 @@
   line-height: 1.5;
 }
 
+.expandButton {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-accent);
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--spacing-sm);
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.expandButton:hover {
+  background: var(--bg-hover);
+}
+
 .editorWrapper {
   min-height: 60px;
   padding-top: 4px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines) {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .top),
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .bottom) {
+  height: 10px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .top) {
+  transform: translate(0, 8px);
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .bottom) {
+  transform: translate(0, -8px);
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center) {
+  display: flex !important;
+  align-items: center;
+  min-width: 0;
+  height: 26px;
+  cursor: pointer;
+  padding-right: 10px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center > div:first-child) {
+  flex-shrink: 0;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center > div:last-child) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center span),
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center a),
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center .breadcrumb-item) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center span.codicon) {
+  margin-right: 2px;
+}
+
+.editorWrapper + .editorWrapper {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.loadingBody,
+.errorBody {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.errorBody {
+  color: var(--text-error, var(--text-muted));
 }

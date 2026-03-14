@@ -100,31 +100,25 @@ export const addExcludedPattern = createAsyncThunk<
   string[],
   string,
   { state: RootState; rejectValue: string }
->(
-  'settings/addExcludedPattern',
-  async (pattern, { getState, rejectWithValue }) => {
-    const current = getState().settings.excludedPatterns
-    const updated = [...current, pattern]
-    const result = await window.api.setExcludedPatterns(updated)
-    if (!result.ok) return rejectWithValue(result.error)
-    return updated
-  },
-)
+>('settings/addExcludedPattern', async (pattern, { getState, rejectWithValue }) => {
+  const current = getState().settings.excludedPatterns
+  const updated = [...current, pattern]
+  const result = await window.api.setExcludedPatterns(updated)
+  if (!result.ok) return rejectWithValue(result.error)
+  return updated
+})
 
 export const removeExcludedPattern = createAsyncThunk<
   string[],
   string,
   { state: RootState; rejectValue: string }
->(
-  'settings/removeExcludedPattern',
-  async (pattern, { getState, rejectWithValue }) => {
-    const current = getState().settings.excludedPatterns
-    const updated = current.filter((p) => p !== pattern)
-    const result = await window.api.setExcludedPatterns(updated)
-    if (!result.ok) return rejectWithValue(result.error)
-    return updated
-  },
-)
+>('settings/removeExcludedPattern', async (pattern, { getState, rejectWithValue }) => {
+  const current = getState().settings.excludedPatterns
+  const updated = current.filter((p) => p !== pattern)
+  const result = await window.api.setExcludedPatterns(updated)
+  if (!result.ok) return rejectWithValue(result.error)
+  return updated
+})
 
 export const loadLastPrUrl = createAsyncThunk<string | null, undefined, { rejectValue: string }>(
   'settings/loadLastPrUrl',
@@ -204,7 +198,8 @@ export const selectAiProvider = (state: RootState): AiProvider => state.settings
 export const selectHasApiKey = (state: RootState): boolean => state.settings.hasApiKey
 export const selectCliModel = (state: RootState): string => state.settings.cliModel
 export const selectCliInstalled = (state: RootState): boolean | null => state.settings.cliInstalled
-export const selectExcludedPatterns = (state: RootState): string[] => state.settings.excludedPatterns
+export const selectExcludedPatterns = (state: RootState): string[] =>
+  state.settings.excludedPatterns
 export const selectLastPrUrl = (state: RootState): string | null => state.settings.lastPrUrl
 export const selectSettingsLoading = (state: RootState): boolean => state.settings.loading
 export const selectSettingsLoaded = (state: RootState): boolean => state.settings.loaded

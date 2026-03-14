@@ -45,9 +45,7 @@ export function useResizablePanel({
   storageKey,
 }: UseResizablePanelOptions): UseResizablePanelResult {
   const [width, setWidth] = useState(() =>
-    storageKey
-      ? readStoredWidth(storageKey, minWidth, maxWidth, defaultWidth)
-      : defaultWidth,
+    storageKey ? readStoredWidth(storageKey, minWidth, maxWidth, defaultWidth) : defaultWidth,
   )
   const dragging = useRef(false)
   const startX = useRef(0)
@@ -63,9 +61,7 @@ export function useResizablePanel({
 
       const handleMouseMove = (ev: MouseEvent): void => {
         if (!dragging.current) return
-        const delta = edge === 'left'
-          ? startX.current - ev.clientX
-          : ev.clientX - startX.current
+        const delta = edge === 'left' ? startX.current - ev.clientX : ev.clientX - startX.current
         const next = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta))
         latestWidth.current = next
         setWidth(next)

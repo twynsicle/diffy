@@ -66,7 +66,9 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps): ReactEl
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
-    return () => { document.removeEventListener('keydown', handleKeyDown) }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [handleKeyDown])
 
   useEffect(() => {
@@ -75,7 +77,9 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps): ReactEl
         onClose()
       }
     }
-    const handleScroll = (): void => { onClose() }
+    const handleScroll = (): void => {
+      onClose()
+    }
 
     document.addEventListener('mousedown', handleClick)
     document.addEventListener('scroll', handleScroll, true)
@@ -94,12 +98,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps): ReactEl
   }, [focusedIndex])
 
   return createPortal(
-    <div
-      className={styles['menu']}
-      ref={menuRef}
-      style={{ left: pos.x, top: pos.y }}
-      role="menu"
-    >
+    <div className={styles['menu']} ref={menuRef} style={{ left: pos.x, top: pos.y }} role="menu">
       {items.map((item, i) => (
         <button
           key={item.label}
@@ -116,9 +115,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps): ReactEl
           type="button"
         >
           <span>{item.label}</span>
-          {item.shortcutHint && (
-            <span className={styles['shortcutHint']}>{item.shortcutHint}</span>
-          )}
+          {item.shortcutHint && <span className={styles['shortcutHint']}>{item.shortcutHint}</span>}
         </button>
       ))}
     </div>,

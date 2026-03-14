@@ -31,10 +31,7 @@ describe('buildFileTree', () => {
   })
 
   it('groups files in the same folder', () => {
-    const tree = buildFileTree([
-      makeFile('src/a.ts'),
-      makeFile('src/b.ts'),
-    ])
+    const tree = buildFileTree([makeFile('src/a.ts'), makeFile('src/b.ts')])
     expect(tree).toHaveLength(1)
     expect(tree[0].kind).toBe('folder')
 
@@ -56,10 +53,7 @@ describe('buildFileTree', () => {
   })
 
   it('does not compress when folders have siblings', () => {
-    const tree = buildFileTree([
-      makeFile('a/b/file1.ts'),
-      makeFile('a/c/file2.ts'),
-    ])
+    const tree = buildFileTree([makeFile('a/b/file1.ts'), makeFile('a/c/file2.ts')])
     expect(tree).toHaveLength(1)
 
     const a = tree[0] as TreeNodeFolder
@@ -77,12 +71,7 @@ describe('buildFileTree', () => {
       makeFile('m-dir/nested.ts'),
     ])
 
-    expect(tree.map((n) => n.name)).toEqual([
-      'a-dir',
-      'm-dir',
-      'a-file.ts',
-      'z-file.ts',
-    ])
+    expect(tree.map((n) => n.name)).toEqual(['a-dir', 'm-dir', 'a-file.ts', 'z-file.ts'])
   })
 
   it('skips entries with trailing slash (empty filename)', () => {
@@ -105,10 +94,7 @@ describe('buildFileTree', () => {
 
 describe('flattenTree', () => {
   it('flattens all nodes when nothing is collapsed', () => {
-    const tree = buildFileTree([
-      makeFile('src/a.ts'),
-      makeFile('src/b.ts'),
-    ])
+    const tree = buildFileTree([makeFile('src/a.ts'), makeFile('src/b.ts')])
     const rows = flattenTree(tree, new Set())
     // 1 folder + 2 files
     expect(rows).toHaveLength(3)
@@ -121,10 +107,7 @@ describe('flattenTree', () => {
   })
 
   it('skips children of collapsed folders', () => {
-    const tree = buildFileTree([
-      makeFile('src/a.ts'),
-      makeFile('src/b.ts'),
-    ])
+    const tree = buildFileTree([makeFile('src/a.ts'), makeFile('src/b.ts')])
     const rows = flattenTree(tree, new Set(['src']))
     expect(rows).toHaveLength(1)
     expect(rows[0].kind).toBe('folder')

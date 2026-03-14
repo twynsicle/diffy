@@ -18,7 +18,9 @@ function ToastItem({ toast }: { toast: Toast }): ReactElement {
     const timer = setTimeout(() => {
       dispatch(dismissToast(toast.id))
     }, AUTO_DISMISS_MS)
-    return () => { clearTimeout(timer) }
+    return () => {
+      clearTimeout(timer)
+    }
   }, [dispatch, toast.id])
 
   const variantClass = toast.variant === 'error' ? styles['error'] : styles['info']
@@ -28,7 +30,9 @@ function ToastItem({ toast }: { toast: Toast }): ReactElement {
       <span className={styles['message']}>{toast.message}</span>
       <button
         className={styles['dismiss']}
-        onClick={() => { dispatch(dismissToast(toast.id)) }}
+        onClick={() => {
+          dispatch(dismissToast(toast.id))
+        }}
         type="button"
         aria-label="Dismiss"
       >

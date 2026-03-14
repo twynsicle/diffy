@@ -2,7 +2,15 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 import type { DiffyApi } from '@shared/ipc'
-import type { AiProvider, DiffRequest, NarrativeReview, PrData, PrReference } from '@shared/types'
+import type {
+  AiProvider,
+  DiffRequest,
+  FileAtRefRequest,
+  NarrativeCacheLookup,
+  NarrativeGenerationRequest,
+  NarrativeReview,
+  PrReference,
+} from '@shared/types'
 
 const api: DiffyApi = {
   getLastRepo: () => ipcRenderer.invoke(IPC_CHANNELS.REPO_GET_LAST),
@@ -58,10 +66,16 @@ const api: DiffyApi = {
   clearApiKey: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_CLEAR_API_KEY),
   checkGhInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.GH_CHECK_INSTALLED),
   fetchPr: (ref: PrReference) => ipcRenderer.invoke(IPC_CHANNELS.GH_FETCH_PR, ref),
-  generateNarrative: (prData: PrData) =>
-    ipcRenderer.invoke(IPC_CHANNELS.LLM_GENERATE_NARRATIVE, prData),
+  generateNarrative: (request: NarrativeGenerationRequest) =>
+    ipcRenderer.invoke(IPC_CHANNELS.LLM_GENERATE_NARRATIVE, request),
+  getCachedNarrativeReview: (lookup: NarrativeCacheLookup) =>
+    ipcRenderer.invoke(IPC_CHANNELS.LLM_GET_CACHED_NARRATIVE_REVIEW, lookup),
   onNarrativeStreamChunk: (callback: (requestId: string, chunk: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, requestId: string, chunk: string): void => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      requestId: string,
+      chunk: string,
+    ): void => {
       callback(requestId, chunk)
     }
     ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_CHUNK, listener)
@@ -70,7 +84,11 @@ const api: DiffyApi = {
     }
   },
   onNarrativeStreamComplete: (callback: (requestId: string, review: NarrativeReview) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, requestId: string, review: NarrativeReview): void => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      requestId: string,
+      review: NarrativeReview,
+    ): void => {
       callback(requestId, review)
     }
     ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_COMPLETE, listener)
@@ -79,7 +97,11 @@ const api: DiffyApi = {
     }
   },
   onNarrativeStreamError: (callback: (requestId: string, error: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, requestId: string, error: string): void => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      requestId: string,
+      error: string,
+    ): void => {
       callback(requestId, error)
     }
     ipcRenderer.on(IPC_CHANNELS.LLM_STREAM_ERROR, listener)
@@ -87,7 +109,8 @@ const api: DiffyApi = {
       ipcRenderer.removeListener(IPC_CHANNELS.LLM_STREAM_ERROR, listener)
     }
   },
-  cancelGeneration: (requestId?: string) => ipcRenderer.invoke(IPC_CHANNELS.LLM_CANCEL_GENERATION, requestId),
+  cancelGeneration: (requestId?: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.LLM_CANCEL_GENERATION, requestId),
   getLastPrUrl: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_LAST_PR_URL),
   setLastPrUrl: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_LAST_PR_URL, url),
   getExcludedPatterns: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_EXCLUDED_PATTERNS),
@@ -97,9 +120,10 @@ const api: DiffyApi = {
   setAiProvider: (provider: AiProvider) =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_AI_PROVIDER, provider),
   getCliModel: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_CLI_MODEL),
-  setCliModel: (model: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_CLI_MODEL, model),
+  setCliModel: (model: string) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_CLI_MODEL, model),
   checkClaudeCliInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLAUDE_CLI_CHECK_INSTALLED),
+  getFileAtRef: (request: FileAtRefRequest) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_FILE_AT_REF, request),
   getBranchDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH_DIFF),
   getUncommittedDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_UNCOMMITTED_DIFF),
   fetchOrigin: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_FETCH_ORIGIN),

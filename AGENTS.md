@@ -139,13 +139,12 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 
 ### Shared (`src/shared/`)
 
-| File                | Purpose                                                                                                                                                                                                     |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ipc.ts`            | IPC channel name constants (39 channels) and `DiffyApi` type definition                                                                                                                                     |
-| `types.ts`          | Domain types: `FileChange`, `Section`, `DiffContent`, `DiffRange`, `DiffChunk`, `FileAtRefRequest`, `FileAtRefResult`, `Result<T>`, `AppMode`, `NarrativeReview`, `PrData`, `PrFileChange`, `Insight`, etc. |
-| `ai-file-filter.ts` | Exclude lock files, snapshots, minified assets from AI processing. Supports user-defined patterns                                                                                                           |
-| `merge-ranges.ts`   | Merge nearby `DiffRange[]` (within configurable gap) and expand with context lines                                                                                                                          |
-| `parse-pr-url.ts`   | Parse `github.com/:owner/:repo/pull/:number` URLs into `PrReference`                                                                                                                                        |
+| File                | Purpose                                                                                                                                                                                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ipc.ts`            | IPC channel name constants (39 channels) and `DiffyApi` type definition                                                                                                                                                                         |
+| `types.ts`          | Domain types: `FileChange`, `Section`, `DiffContent`, `DiffRange`, `DiffLineSpan`, `ResolvedDiffHunk`, `DiffChunk`, `FileAtRefRequest`, `FileAtRefResult`, `Result<T>`, `AppMode`, `NarrativeReview`, `PrData`, `PrFileChange`, `Insight`, etc. |
+| `ai-file-filter.ts` | Exclude lock files, snapshots, minified assets from AI processing. Supports user-defined patterns                                                                                                                                               |
+| `parse-pr-url.ts`   | Parse `github.com/:owner/:repo/pull/:number` URLs into `PrReference`                                                                                                                                                                            |
 
 ### Renderer — Store (`src/renderer/store/`)
 
@@ -187,7 +186,7 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 
 ### Renderer — Narrative Review Screen (`src/renderer/screens/narrative-review/`)
 
-`NarrativeShell`, `NarrativeView`, `NarrativeToolbar`, `SourceSelect`, `PrInput`, `ChapterCard`, `ChapterNav`, `ChapterNavBar`, `SummaryCard`, `PrSummary`, `InsightCallout`, `InlineDiffChunk`, `MarkdownText`, `GeneratingOverlay`, `RawResponseModal`
+`NarrativeShell`, `NarrativeView`, `NarrativeToolbar`, `SourceSelect`, `PrInput`, `ChapterCard`, `ChapterNav`, `ChapterNavBar`, `SummaryCard`, `PrSummary`, `InsightCallout`, `InlineDiffChunk`, `inline-diff-snippets.ts`, `MarkdownText`, `GeneratingOverlay`, `RawResponseModal`
 
 ### Renderer — Utils (`src/renderer/utils/`)
 

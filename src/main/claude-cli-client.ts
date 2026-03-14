@@ -25,7 +25,7 @@ export async function generateNarrativeCli(
   model?: string,
 ): Promise<NarrativeResult> {
   const userPatterns = getExcludedFilePatterns()
-  const { system, user, wasTruncated } = buildNarrativePrompt(prData, userPatterns)
+  const { system, user, wasTruncated, hunkIndex } = buildNarrativePrompt(prData, userPatterns)
 
   const args = ['-p', '--system-prompt', system, '--tools', '']
   if (model) {
@@ -41,7 +41,8 @@ export async function generateNarrativeCli(
     stdin: user,
     signal: externalSignal,
     timeoutError: 'CLI generation timed out after 3 minutes',
-    enoentError: 'Claude CLI not found. Install Claude Code from https://docs.anthropic.com/en/docs/claude-code',
+    enoentError:
+      'Claude CLI not found. Install Claude Code from https://docs.anthropic.com/en/docs/claude-code',
     onStdout: (chunk) => {
       accumulated += chunk
       onChunk(chunk)
@@ -66,7 +67,7 @@ export async function generateNarrativeCli(
     }
   }
 
-  const parseResult = parseNarrativeReview(accumulated)
+  const parseResult = parseNarrativeReview(accumulated, hunkIndex)
   if (!parseResult.ok) {
     return { ...parseResult, wasTruncated, rawText: accumulated }
   }

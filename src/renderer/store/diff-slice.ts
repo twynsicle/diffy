@@ -110,5 +110,6 @@ export const selectDiffLanguage = (state: RootState): string => state.diff.langu
 export const selectDiffIsBinary = (state: RootState): boolean => state.diff.isBinary
 export const selectDiffError = (state: RootState): string | undefined => state.diff.error
 export const selectWrapEnabled = (state: RootState): boolean => state.diff.wrapEnabled
-export const selectDiffLastRequest = (state: RootState): DiffRequest | undefined => state.diff.lastRequest
+export const selectDiffLastRequest = (state: RootState): DiffRequest | undefined =>
+  state.diff.lastRequest
 export const selectDiffFetching = (state: RootState): boolean => state.diff.fetching

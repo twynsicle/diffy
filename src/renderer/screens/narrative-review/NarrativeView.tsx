@@ -1,4 +1,4 @@
-import { type ReactElement, useCallback } from 'react'
+import { type ReactElement, useCallback, useMemo } from 'react'
 
 import { SUMMARY_SECTION_ID } from '@shared/types'
 
@@ -8,6 +8,7 @@ import { useNarrativeDiffLoader } from '../../hooks/use-narrative-diff-loader'
 import {
   selectActiveChapterId,
   selectChapterList,
+  selectNarrativeSource,
   selectPrData,
   selectReview,
   selectSelectedNarrativeFile,
@@ -27,8 +28,22 @@ export function NarrativeView(): ReactElement | null {
   const review = useAppSelector(selectReview)
   const activeChapterId = useAppSelector(selectActiveChapterId)
   const prData = useAppSelector(selectPrData)
+  const source = useAppSelector(selectNarrativeSource)
   const selectedFile = useAppSelector(selectSelectedNarrativeFile)
   const chapters = useAppSelector(selectChapterList)
+
+  const { baseRef, headRef } = useMemo(() => {
+    if (source === 'branch-diff' && prData) {
+      return { baseRef: prData.baseRefName, headRef: 'HEAD' }
+    }
+    if (source === 'uncommitted') {
+      return { baseRef: 'HEAD', headRef: 'WORKTREE' }
+    }
+    if (source === 'github-pr' && prData) {
+      return { baseRef: `origin/${prData.baseRefName}`, headRef: `origin/${prData.headRefName}` }
+    }
+    return { baseRef: 'HEAD', headRef: 'HEAD' }
+  }, [source, prData])
 
   useNarrativeDiffLoader()
 
@@ -51,7 +66,7 @@ export function NarrativeView(): ReactElement | null {
 
   if (review.chapters.length === 0) {
     return (
-      <div className={styles.scrollContainer}>
+      <div className={styles.scrollContainer} data-narrative-scroll-container="true">
         <div className={styles.content}>
           <MarkdownText text={review.overviewSummary} />
           <div className={styles.emptyChapters}>
@@ -64,9 +79,11 @@ export function NarrativeView(): ReactElement | null {
 
   if (isSummary && prData) {
     return (
-      <div className={styles.scrollContainer}>
+      <div className={styles.scrollContainer} data-narrative-scroll-container="true">
         <div className={styles.content}>
-          <div className={styles.srOnly} aria-live="polite">Summary</div>
+          <div className={styles.srOnly} aria-live="polite">
+            Summary
+          </div>
           <SummaryCard review={review} prData={prData} />
         </div>
       </div>
@@ -76,7 +93,7 @@ export function NarrativeView(): ReactElement | null {
   if (!activeChapter) return null
 
   return (
-    <div className={styles.scrollContainer}>
+    <div className={styles.scrollContainer} data-narrative-scroll-container="true">
       <div className={styles.chapterLayout}>
         {activeChapter.insights.length > 0 && (
           <aside className={styles.insightsSidebar}>
@@ -89,7 +106,12 @@ export function NarrativeView(): ReactElement | null {
           <div className={styles.srOnly} aria-live="polite">
             {`Chapter: ${activeChapter.title}`}
           </div>
-          <ChapterCard key={activeChapter.id} chapter={activeChapter} />
+          <ChapterCard
+            key={activeChapter.id}
+            chapter={activeChapter}
+            baseRef={baseRef}
+            headRef={headRef}
+          />
         </div>
       </div>
     </div>
