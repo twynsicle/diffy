@@ -1,6 +1,15 @@
 import { createAsyncThunk, createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
-import type { NarrativeReview, NarrativeSource, PrData, PrFileChange, PrReference } from '@shared/types'
+import type {
+  NarrativeCacheLookup,
+  NarrativeGenerationRequest,
+  NarrativeReview,
+  NarrativeReviewCacheEntry,
+  NarrativeSource,
+  PrData,
+  PrFileChange,
+  PrReference,
+} from '@shared/types'
 import { SUMMARY_SECTION_ID } from '@shared/types'
 import { parsePrUrl } from '@shared/parse-pr-url'
 
@@ -22,6 +31,8 @@ type NarrativeState = {
   cancelling: boolean
   refreshingFiles: boolean
   currentRequestId: string | null
+  cachedReview: NarrativeReviewCacheEntry | null
+  cachedReviewLoading: boolean
 }
 
 const initialState: NarrativeState = {
@@ -40,6 +51,8 @@ const initialState: NarrativeState = {
   cancelling: false,
   refreshingFiles: false,
   currentRequestId: null,
+  cachedReview: null,
+  cachedReviewLoading: false,
 }
 
 export const checkGhInstalled = createAsyncThunk<boolean, undefined, { rejectValue: string }>(
@@ -64,31 +77,29 @@ export const fetchPr = createAsyncThunk<PrData, PrReference, { rejectValue: stri
   },
 )
 
-export const startNarrativeGeneration = createAsyncThunk<string, PrData, { rejectValue: string }>(
-  'narrative/startNarrativeGeneration',
-  async (prData, { rejectWithValue }) => {
-    const result = await window.api.generateNarrative(prData)
-    if (!result.ok) {
-      return rejectWithValue(result.error)
-    }
-    return result.data
-  },
-)
+export const startNarrativeGeneration = createAsyncThunk<
+  string,
+  NarrativeGenerationRequest,
+  { rejectValue: string }
+>('narrative/startNarrativeGeneration', async (request, { rejectWithValue }) => {
+  const result = await window.api.generateNarrative(request)
+  if (!result.ok) {
+    return rejectWithValue(result.error)
+  }
+  return result.data
+})
 
 export const cancelGeneration = createAsyncThunk<
   undefined,
   undefined,
   { state: RootState; rejectValue: string }
->(
-  'narrative/cancelGeneration',
-  async (_, { getState, rejectWithValue }) => {
-    const requestId = getState().narrative.currentRequestId ?? undefined
-    const result = await window.api.cancelGeneration(requestId)
-    if (!result.ok) {
-      return rejectWithValue(result.error)
-    }
-  },
-)
+>('narrative/cancelGeneration', async (_, { getState, rejectWithValue }) => {
+  const requestId = getState().narrative.currentRequestId ?? undefined
+  const result = await window.api.cancelGeneration(requestId)
+  if (!result.ok) {
+    return rejectWithValue(result.error)
+  }
+})
 
 export const fetchBranchDiff = createAsyncThunk<PrData, undefined, { rejectValue: string }>(
   'narrative/fetchBranchDiff',
@@ -116,34 +127,43 @@ export const refreshNarrativeFiles = createAsyncThunk<
   PrData,
   undefined,
   { state: RootState; rejectValue: string }
->(
-  'narrative/refreshNarrativeFiles',
-  async (_, { getState, rejectWithValue }) => {
-    const { source, prUrl } = getState().narrative
+>('narrative/refreshNarrativeFiles', async (_, { getState, rejectWithValue }) => {
+  const { source, prUrl } = getState().narrative
 
-    if (source === 'branch-diff') {
-      const result = await window.api.getBranchDiff()
-      if (!result.ok) return rejectWithValue(result.error)
-      return result.data
-    }
+  if (source === 'branch-diff') {
+    const result = await window.api.getBranchDiff()
+    if (!result.ok) return rejectWithValue(result.error)
+    return result.data
+  }
 
-    if (source === 'uncommitted') {
-      const result = await window.api.getUncommittedDiff()
-      if (!result.ok) return rejectWithValue(result.error)
-      return result.data
-    }
+  if (source === 'uncommitted') {
+    const result = await window.api.getUncommittedDiff()
+    if (!result.ok) return rejectWithValue(result.error)
+    return result.data
+  }
 
-    if (source === 'github-pr' && prUrl) {
-      const ref = parsePrUrl(prUrl)
-      if (!ref) return rejectWithValue('Invalid PR URL')
-      const result = await window.api.fetchPr(ref)
-      if (!result.ok) return rejectWithValue(result.error)
-      return result.data
-    }
+  if (source === 'github-pr' && prUrl) {
+    const ref = parsePrUrl(prUrl)
+    if (!ref) return rejectWithValue('Invalid PR URL')
+    const result = await window.api.fetchPr(ref)
+    if (!result.ok) return rejectWithValue(result.error)
+    return result.data
+  }
 
-    return rejectWithValue('Cannot refresh files for this source')
-  },
-)
+  return rejectWithValue('Cannot refresh files for this source')
+})
+
+export const loadCachedNarrativeReview = createAsyncThunk<
+  NarrativeReviewCacheEntry | null,
+  NarrativeCacheLookup,
+  { rejectValue: string }
+>('narrative/loadCachedNarrativeReview', async (lookup, { rejectWithValue }) => {
+  const result = await window.api.getCachedNarrativeReview(lookup)
+  if (!result.ok) {
+    return rejectWithValue(result.error)
+  }
+  return result.data
+})
 
 const narrativeSlice = createSlice({
   name: 'narrative',
@@ -151,6 +171,8 @@ const narrativeSlice = createSlice({
   reducers: {
     setSource(state, action: PayloadAction<NarrativeSource | null>) {
       state.source = action.payload
+      state.cachedReview = null
+      state.cachedReviewLoading = false
     },
     setPrUrl(state, action: PayloadAction<string>) {
       state.prUrl = action.payload
@@ -168,6 +190,8 @@ const narrativeSlice = createSlice({
       state.activeChapterId = null
       state.selectedFile = null
       state.currentRequestId = null
+      state.cachedReview = null
+      state.cachedReviewLoading = false
     },
     appendStreamText(state, action: PayloadAction<string>) {
       state.streamText += action.payload
@@ -183,6 +207,7 @@ const narrativeSlice = createSlice({
     setReview(state, action: PayloadAction<NarrativeReview>) {
       state.review = action.payload
       state.generating = false
+      state.cancelling = false
       state.activeChapterId = action.payload.chapters[0]?.id ?? null
     },
     setGenerateError(state, action: PayloadAction<string>) {
@@ -198,6 +223,21 @@ const narrativeSlice = createSlice({
       state.selectedFile = null
       state.currentRequestId = null
     },
+    clearCachedReview(state) {
+      state.cachedReview = null
+      state.cachedReviewLoading = false
+    },
+    hydrateCachedReview(state, action: PayloadAction<NarrativeReviewCacheEntry>) {
+      state.prData = action.payload.prData
+      state.review = action.payload.review
+      state.generateError = null
+      state.streamText = ''
+      state.selectedFile = null
+      state.currentRequestId = null
+      state.generating = false
+      state.cancelling = false
+      state.activeChapterId = action.payload.review.chapters[0]?.id ?? null
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(checkGhInstalled.fulfilled, (state, action) => {
@@ -211,6 +251,8 @@ const narrativeSlice = createSlice({
       state.prLoading = true
       state.prError = null
       state.prData = null
+      state.cachedReview = null
+      state.cachedReviewLoading = false
     })
     builder.addCase(fetchPr.fulfilled, (state, action) => {
       state.prLoading = false
@@ -225,6 +267,8 @@ const narrativeSlice = createSlice({
       state.prLoading = true
       state.prError = null
       state.prData = null
+      state.cachedReview = null
+      state.cachedReviewLoading = false
     })
     builder.addCase(fetchBranchDiff.fulfilled, (state, action) => {
       state.prLoading = false
@@ -239,6 +283,8 @@ const narrativeSlice = createSlice({
       state.prLoading = true
       state.prError = null
       state.prData = null
+      state.cachedReview = null
+      state.cachedReviewLoading = false
     })
     builder.addCase(fetchUncommittedDiff.fulfilled, (state, action) => {
       state.prLoading = false
@@ -283,10 +329,24 @@ const narrativeSlice = createSlice({
       if (state.prData) {
         state.prData.files = action.payload.files
         state.prData.diff = action.payload.diff
+        state.prData.cacheMetadata = action.payload.cacheMetadata
       }
     })
     builder.addCase(refreshNarrativeFiles.rejected, (state) => {
       state.refreshingFiles = false
+    })
+
+    builder.addCase(loadCachedNarrativeReview.pending, (state) => {
+      state.cachedReviewLoading = true
+      state.cachedReview = null
+    })
+    builder.addCase(loadCachedNarrativeReview.fulfilled, (state, action) => {
+      state.cachedReviewLoading = false
+      state.cachedReview = action.payload
+    })
+    builder.addCase(loadCachedNarrativeReview.rejected, (state) => {
+      state.cachedReviewLoading = false
+      state.cachedReview = null
     })
   },
 })
@@ -301,10 +361,13 @@ export const {
   setReview,
   setGenerateError,
   clearReview,
+  clearCachedReview,
+  hydrateCachedReview,
 } = narrativeSlice.actions
 export const narrativeReducer = narrativeSlice.reducer
 
-export const selectNarrativeSource = (state: RootState): NarrativeSource | null => state.narrative.source
+export const selectNarrativeSource = (state: RootState): NarrativeSource | null =>
+  state.narrative.source
 export const selectPrUrl = (state: RootState): string => state.narrative.prUrl
 export const selectPrData = (state: RootState): PrData | null => state.narrative.prData
 export const selectPrLoading = (state: RootState): boolean => state.narrative.prLoading
@@ -312,21 +375,29 @@ export const selectPrError = (state: RootState): string | null => state.narrativ
 export const selectGhInstalled = (state: RootState): boolean | null => state.narrative.ghInstalled
 export const selectReview = (state: RootState): NarrativeReview | null => state.narrative.review
 export const selectGenerating = (state: RootState): boolean => state.narrative.generating
-export const selectGenerateError = (state: RootState): string | null => state.narrative.generateError
+export const selectGenerateError = (state: RootState): string | null =>
+  state.narrative.generateError
 export const selectStreamText = (state: RootState): string => state.narrative.streamText
-export const selectActiveChapterId = (state: RootState): string | null => state.narrative.activeChapterId
+export const selectActiveChapterId = (state: RootState): string | null =>
+  state.narrative.activeChapterId
 const EMPTY_CHAPTER_LIST: { id: string; title: string }[] = []
 export const selectChapterList = createSelector(
   [(state: RootState) => state.narrative.review],
   (review): { id: string; title: string }[] =>
     review?.chapters.map((ch) => ({ id: ch.id, title: ch.title })) ?? EMPTY_CHAPTER_LIST,
 )
-export const selectSelectedNarrativeFile = (state: RootState): string | null => state.narrative.selectedFile
+export const selectSelectedNarrativeFile = (state: RootState): string | null =>
+  state.narrative.selectedFile
 export const selectNarrativeFileList = (state: RootState): PrFileChange[] =>
   state.narrative.prData?.files ?? []
-export const selectCurrentRequestId = (state: RootState): string | null => state.narrative.currentRequestId
+export const selectCurrentRequestId = (state: RootState): string | null =>
+  state.narrative.currentRequestId
 export const selectCancelling = (state: RootState): boolean => state.narrative.cancelling
 export const selectRefreshingFiles = (state: RootState): boolean => state.narrative.refreshingFiles
+export const selectCachedReview = (state: RootState): NarrativeReviewCacheEntry | null =>
+  state.narrative.cachedReview
+export const selectCachedReviewLoading = (state: RootState): boolean =>
+  state.narrative.cachedReviewLoading
 export const selectActiveChapterIndex = (state: RootState): number => {
   const { review, activeChapterId } = state.narrative
   if (!review || !activeChapterId) return -1

@@ -50,9 +50,7 @@ export type FileAtRefResult = {
   modifiedLineCount: number
 }
 
-export type Result<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string }
+export type Result<T> = { ok: true; data: T } | { ok: false; error: string }
 
 export type AppMode = 'workspace' | 'narrative-review'
 
@@ -63,6 +61,21 @@ export type PrReference = {
   repo: string
   number: number
 }
+
+export type BranchNarrativeCacheMetadata = {
+  source: 'branch-diff'
+  branchName: string
+  headSha: string
+  baseSha: string
+}
+
+export type UncommittedNarrativeCacheMetadata = {
+  source: 'uncommitted'
+  headSha: string
+  diffHash: string
+}
+
+export type PrDataCacheMetadata = BranchNarrativeCacheMetadata | UncommittedNarrativeCacheMetadata
 
 export type PrFileChange = {
   filename: string
@@ -80,6 +93,7 @@ export type PrData = {
   headRefName: string
   files: PrFileChange[]
   diff: string
+  cacheMetadata?: PrDataCacheMetadata
 }
 
 export type DiffRange = {
@@ -125,4 +139,48 @@ export type NarrativeReview = {
   prTitle: string
   overviewSummary: string
   chapters: NarrativeChapter[]
+}
+
+export type GithubPrNarrativeCacheContext = {
+  source: 'github-pr'
+}
+
+export type BranchNarrativeCacheContext = {
+  source: 'branch-diff'
+  branchName: string
+  headSha: string
+  baseSha: string
+}
+
+export type UncommittedNarrativeCacheContext = {
+  source: 'uncommitted'
+  headSha: string
+  diffHash: string
+}
+
+export type NarrativeCacheContext =
+  | GithubPrNarrativeCacheContext
+  | BranchNarrativeCacheContext
+  | UncommittedNarrativeCacheContext
+
+export type NarrativeGenerationRequest = {
+  source: NarrativeSource
+  prData: PrData
+  prRef?: PrReference
+  cacheContext: NarrativeCacheContext
+}
+
+export type NarrativeCacheLookup = {
+  source: NarrativeSource
+  prRef?: PrReference
+  cacheContext?: NarrativeCacheContext
+}
+
+export type NarrativeReviewCacheEntry = {
+  source: NarrativeSource
+  cachedAt: string
+  prData: PrData
+  review: NarrativeReview
+  prRef?: PrReference
+  cacheContext: NarrativeCacheContext
 }

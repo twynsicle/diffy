@@ -4,7 +4,13 @@ import { join } from 'node:path'
 import { ipcMain } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
-import type { DiffContent, DiffRequest, FileAtRefRequest, FileAtRefResult, Result } from '@shared/types'
+import type {
+  DiffContent,
+  DiffRequest,
+  FileAtRefRequest,
+  FileAtRefResult,
+  Result,
+} from '@shared/types'
 
 import { isBinary } from '../detect-binary'
 import { isPathInsideRepo, runGit } from '../git-runner'
@@ -63,7 +69,10 @@ export function registerDiffHandlers(): void {
           (r): r is string => r !== undefined && r !== 'HEAD' && r !== 'WORKTREE',
         )
         for (const ref of refsToCheck) {
-          const exists = await runGit({ repoRoot: currentRepoRoot, args: ['rev-parse', '--verify', ref] })
+          const exists = await runGit({
+            repoRoot: currentRepoRoot,
+            args: ['rev-parse', '--verify', ref],
+          })
           if (!exists.ok) {
             return { ok: false, error: `Ref "${ref}" not found locally. Try: git fetch origin` }
           }
@@ -148,7 +157,10 @@ export function registerDiffHandlers(): void {
         (r) => r !== 'HEAD' && r !== 'WORKTREE',
       )
       for (const ref of refsToCheck) {
-        const exists = await runGit({ repoRoot: currentRepoRoot, args: ['rev-parse', '--verify', ref] })
+        const exists = await runGit({
+          repoRoot: currentRepoRoot,
+          args: ['rev-parse', '--verify', ref],
+        })
         if (!exists.ok) {
           return { ok: false, error: `Ref "${ref}" not found locally. Try: git fetch origin` }
         }

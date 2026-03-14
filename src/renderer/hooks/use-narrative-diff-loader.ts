@@ -44,12 +44,14 @@ export function useNarrativeDiffLoader(): void {
         baseRef: prData.baseRefName,
         headRef: 'HEAD',
       })
-      void dispatch(loadDiff({
-        path: selectedFile,
-        section: 'unstaged',
-        baseRef: prData.baseRefName,
-        headRef: 'HEAD',
-      }))
+      void dispatch(
+        loadDiff({
+          path: selectedFile,
+          section: 'unstaged',
+          baseRef: prData.baseRefName,
+          headRef: 'HEAD',
+        }),
+      )
       return
     }
 
@@ -61,12 +63,14 @@ export function useNarrativeDiffLoader(): void {
         baseRef: 'HEAD',
         headRef: 'WORKTREE',
       })
-      void dispatch(loadDiff({
-        path: selectedFile,
-        section: 'unstaged',
-        baseRef: 'HEAD',
-        headRef: 'WORKTREE',
-      }))
+      void dispatch(
+        loadDiff({
+          path: selectedFile,
+          section: 'unstaged',
+          baseRef: 'HEAD',
+          headRef: 'WORKTREE',
+        }),
+      )
       return
     }
 
@@ -78,12 +82,14 @@ export function useNarrativeDiffLoader(): void {
         baseRef: `origin/${prData.baseRefName}`,
         headRef: `origin/${prData.headRefName}`,
       })
-      void dispatch(loadDiff({
-        path: selectedFile,
-        section: 'unstaged',
-        baseRef: `origin/${prData.baseRefName}`,
-        headRef: `origin/${prData.headRefName}`,
-      }))
+      void dispatch(
+        loadDiff({
+          path: selectedFile,
+          section: 'unstaged',
+          baseRef: `origin/${prData.baseRefName}`,
+          headRef: `origin/${prData.headRefName}`,
+        }),
+      )
       return
     }
 
@@ -95,7 +101,9 @@ export function useNarrativeDiffLoader(): void {
         path: selectedFile,
         origPath: stagedFile.origPath,
       })
-      void dispatch(loadDiff({ path: selectedFile, section: 'staged', origPath: stagedFile.origPath }))
+      void dispatch(
+        loadDiff({ path: selectedFile, section: 'staged', origPath: stagedFile.origPath }),
+      )
       return
     }
 
@@ -105,10 +113,12 @@ export function useNarrativeDiffLoader(): void {
       path: selectedFile,
       origPath: unstagedFile?.origPath,
     })
-    void dispatch(loadDiff({
-      path: selectedFile,
-      section: 'unstaged',
-      origPath: unstagedFile?.origPath,
-    }))
+    void dispatch(
+      loadDiff({
+        path: selectedFile,
+        section: 'unstaged',
+        origPath: unstagedFile?.origPath,
+      }),
+    )
   }, [dispatch, selectedFile, source, prData])
 }

@@ -56,7 +56,9 @@ describe('buildNarrativePrompt', () => {
   })
 
   it('user prompt includes branch names', () => {
-    const { user } = buildNarrativePrompt(makePrData({ baseRefName: 'main', headRefName: 'feat/auth' }))
+    const { user } = buildNarrativePrompt(
+      makePrData({ baseRefName: 'main', headRefName: 'feat/auth' }),
+    )
     expect(user).toContain('feat/auth')
     expect(user).toContain('main')
   })

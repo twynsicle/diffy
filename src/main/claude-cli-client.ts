@@ -41,7 +41,8 @@ export async function generateNarrativeCli(
     stdin: user,
     signal: externalSignal,
     timeoutError: 'CLI generation timed out after 3 minutes',
-    enoentError: 'Claude CLI not found. Install Claude Code from https://docs.anthropic.com/en/docs/claude-code',
+    enoentError:
+      'Claude CLI not found. Install Claude Code from https://docs.anthropic.com/en/docs/claude-code',
     onStdout: (chunk) => {
       accumulated += chunk
       onChunk(chunk)

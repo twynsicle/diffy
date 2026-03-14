@@ -5,7 +5,9 @@ import { errorToastMiddleware } from './error-toast-middleware'
 function setup() {
   const dispatched: unknown[] = []
   const storeApi = {
-    dispatch: (action: unknown) => { dispatched.push(action) },
+    dispatch: (action: unknown) => {
+      dispatched.push(action)
+    },
     getState: () => ({}),
   }
   const next = vi.fn((action: unknown) => action)

@@ -15,11 +15,7 @@ import {
   setExcludedFilePatterns,
   setLastPrUrl,
 } from '../persisted-state'
-import {
-  clearApiKey,
-  hasApiKey,
-  setApiKey,
-} from '../secure-storage'
+import { clearApiKey, hasApiKey, setApiKey } from '../secure-storage'
 
 export function registerSettingsHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET_API_KEY, (_event, key: string) => {

@@ -10,9 +10,7 @@ export type Toast = {
   variant: ToastVariant
 }
 
-type ConfirmAction =
-  | { type: 'discard'; path: string }
-  | { type: 'delete'; path: string }
+type ConfirmAction = { type: 'discard'; path: string } | { type: 'delete'; path: string }
 
 type ConfirmModal = {
   open: boolean
@@ -97,7 +95,16 @@ const uiSlice = createSlice({
   },
 })
 
-export const { addToast, dismissToast, showConfirmModal, closeConfirmModal, openSettings, closeSettings, setCommitPanelVisible, toggleCommitPanelVisible } = uiSlice.actions
+export const {
+  addToast,
+  dismissToast,
+  showConfirmModal,
+  closeConfirmModal,
+  openSettings,
+  closeSettings,
+  setCommitPanelVisible,
+  toggleCommitPanelVisible,
+} = uiSlice.actions
 export const uiReducer = uiSlice.reducer
 
 export const selectToasts = (state: RootState): Toast[] => state.ui.toasts

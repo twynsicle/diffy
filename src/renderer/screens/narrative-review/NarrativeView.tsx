@@ -66,7 +66,7 @@ export function NarrativeView(): ReactElement | null {
 
   if (review.chapters.length === 0) {
     return (
-      <div className={styles.scrollContainer}>
+      <div className={styles.scrollContainer} data-narrative-scroll-container="true">
         <div className={styles.content}>
           <MarkdownText text={review.overviewSummary} />
           <div className={styles.emptyChapters}>
@@ -79,9 +79,11 @@ export function NarrativeView(): ReactElement | null {
 
   if (isSummary && prData) {
     return (
-      <div className={styles.scrollContainer}>
+      <div className={styles.scrollContainer} data-narrative-scroll-container="true">
         <div className={styles.content}>
-          <div className={styles.srOnly} aria-live="polite">Summary</div>
+          <div className={styles.srOnly} aria-live="polite">
+            Summary
+          </div>
           <SummaryCard review={review} prData={prData} />
         </div>
       </div>
@@ -91,7 +93,7 @@ export function NarrativeView(): ReactElement | null {
   if (!activeChapter) return null
 
   return (
-    <div className={styles.scrollContainer}>
+    <div className={styles.scrollContainer} data-narrative-scroll-container="true">
       <div className={styles.chapterLayout}>
         {activeChapter.insights.length > 0 && (
           <aside className={styles.insightsSidebar}>
@@ -104,7 +106,12 @@ export function NarrativeView(): ReactElement | null {
           <div className={styles.srOnly} aria-live="polite">
             {`Chapter: ${activeChapter.title}`}
           </div>
-          <ChapterCard key={activeChapter.id} chapter={activeChapter} baseRef={baseRef} headRef={headRef} />
+          <ChapterCard
+            key={activeChapter.id}
+            chapter={activeChapter}
+            baseRef={baseRef}
+            headRef={headRef}
+          />
         </div>
       </div>
     </div>

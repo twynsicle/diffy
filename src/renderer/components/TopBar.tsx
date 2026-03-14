@@ -7,10 +7,7 @@ import { useRepoActions } from '../hooks/use-repo-actions'
 import { selectRefreshing } from '../store/changes-slice'
 import { refreshStatus } from '../store/changes-slice'
 import { selectActiveMode, setMode } from '../store/mode-slice'
-import {
-  selectRepoDisplayName,
-  selectRepoRoot,
-} from '../store/repo-slice'
+import { selectRepoDisplayName, selectRepoRoot } from '../store/repo-slice'
 import { openSettings } from '../store/ui-slice'
 
 import styles from './TopBar.module.css'
@@ -53,8 +50,7 @@ export function TopBar(): ReactElement {
         </button>
         {repoRoot && (
           <button className={styles.button} onClick={handleRefresh} type="button">
-            <span className={`${styles.icon} ${refreshing ? styles.spinner : ''}`}>↻</span>
-            {' '}Refresh
+            <span className={`${styles.icon} ${refreshing ? styles.spinner : ''}`}>↻</span> Refresh
           </button>
         )}
       </div>

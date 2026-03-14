@@ -21,7 +21,9 @@
   font-size: var(--font-size-sm);
   font-family: var(--font-family);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .navBtn:hover:not(:disabled) {

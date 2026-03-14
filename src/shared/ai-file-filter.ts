@@ -28,9 +28,7 @@ const EXCLUDED_EXTENSIONS: ReadonlySet<string> = new Set([
   '.lock',
 ])
 
-const EXCLUDED_PATH_SEGMENTS: readonly string[] = [
-  '__snapshots__/',
-]
+const EXCLUDED_PATH_SEGMENTS: readonly string[] = ['__snapshots__/']
 
 export function isExcludedFromAI(filename: string, userPatterns?: readonly string[]): boolean {
   const lower = filename.toLowerCase()

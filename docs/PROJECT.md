@@ -62,6 +62,7 @@ The original mode. `App.tsx` renders `<WorkspaceShell />` which composes `<MainC
 ### Narrative Review Mode
 
 `App.tsx` renders `<NarrativeShell />` which contains:
+
 - `SourceSelect` — choose between GitHub PR, branch diff, or uncommitted changes
 - `PrInput` — enter GitHub PR URL (for PR source)
 - `NarrativeToolbar` — generate/cancel/regenerate buttons
@@ -82,16 +83,27 @@ Narrative review supports three sources (`NarrativeSource` type):
 2. **`branch-diff`** — Compares current branch vs detected default branch (`main`/`master`) using local git
 3. **`uncommitted`** — Compares HEAD vs worktree (staged + unstaged + untracked files)
 
-All three produce a `PrData` object with the same shape:
+All three produce a `PrData` object with the same core shape:
+
 ```
 { title, body, author, baseRefName, headRefName, files: PrFileChange[], diff: string }
 ```
+
+For local sources, `PrData` also carries `cacheMetadata` used to validate whether a cached narrative review is still safe to offer:
+
+- **Branch diff**: `{ source: 'branch-diff', branchName, headSha, baseSha }`
+- **Uncommitted**: `{ source: 'uncommitted', headSha, diffHash }`
 
 ### Generation Flow
 
 ```
 User selects source and clicks "Generate"
-  → renderer dispatches startNarrativeGeneration(prData) thunk
+  → setup screen checks for a matching cached review
+      - github-pr: same owner/repo/PR number
+      - branch-diff: same branch name + HEAD SHA + base SHA
+      - uncommitted: same HEAD SHA + SHA-256 hash of the full diff
+  → if cache matches, UI shows "Load last review" + "Generate New Review"
+  → renderer dispatches startNarrativeGeneration({ source, prData, prRef?, cacheContext }) thunk
   → IPC: llm.generateNarrative
   → main process selects provider (API or CLI) from settings
   → narrative-prompt.ts builds system + user prompts:
@@ -103,6 +115,7 @@ User selects source and clicks "Generate"
   → Each text chunk → IPC: llm.streamChunk → renderer appends to streamText
   → On complete:
       - Main process parses <narrative_review> JSON from accumulated text
+      - Main process persists the successful review in JSON state
       - IPC: llm.streamComplete with NarrativeReview object
       - Renderer dispatches setReview() → renders chapters
   → On error: IPC: llm.streamError → renderer shows error
@@ -113,15 +126,15 @@ User selects source and clicks "Generate"
 ```ts
 type NarrativeReview = {
   prTitle: string
-  overviewSummary: string          // 2-4 sentence high-level summary
-  chapters: NarrativeChapter[]     // 2-12 chapters
+  overviewSummary: string // 2-4 sentence high-level summary
+  chapters: NarrativeChapter[] // 2-12 chapters
 }
 
 type NarrativeChapter = {
-  id: string                       // Slug like 'auth-middleware'
-  title: string                    // McKinsey-style actionable takeaway sentence
-  insights: Insight[]              // 1-3 per chapter
-  diffChunks: DiffChunk[]          // Chapter-scoped file diffs keyed by resolved hunks
+  id: string // Slug like 'auth-middleware'
+  title: string // McKinsey-style actionable takeaway sentence
+  insights: Insight[] // 1-3 per chapter
+  diffChunks: DiffChunk[] // Chapter-scoped file diffs keyed by resolved hunks
 }
 
 type Insight = {
@@ -153,6 +166,7 @@ Narrative inline diffs render one Monaco diff editor per contiguous selected hun
 ### Narrative Keyboard Navigation
 
 When in narrative mode with a review loaded, these keys navigate chapters:
+
 - `←` / `→` or `Space` / `Shift+Space` — previous/next chapter
 - `Home` / `End` — first chapter / summary section
 - `1`–`9` — jump to chapter by number
@@ -201,6 +215,9 @@ For branch-diff and uncommitted sources (no `gh` needed):
 
 - **Branch diff**: `git diff <base>...HEAD` where base is auto-detected (`main`, `master`, `origin/main`, `origin/master`)
 - **Uncommitted diff**: `git diff HEAD` for tracked files + synthetic patches for untracked files (reads from filesystem, skips binary/large files)
+- **Cache metadata**:
+  - Branch diff also resolves current branch name, `HEAD` SHA, and base ref SHA
+  - Uncommitted diff computes a SHA-256 hash of the final unified diff content, including synthetic patches for untracked files
 
 Both produce `PrData` objects matching the same shape as GitHub PR data.
 
@@ -209,11 +226,20 @@ Both produce `PrData` objects matching the same shape as GitHub PR data.
 ### Persisted State (`persisted-state.ts`)
 
 JSON file at `<userData>/persisted-state.json`. Stores:
+
 - `lastRepoPath` — auto-reopened on launch
 - `lastPrUrl` — pre-filled in PR input
 - `excludedFilePatterns` — user-defined file exclusion patterns for AI
 - `aiProvider` — `'api'` or `'cli'` (default: `'api'`)
 - `cliModel` — custom model override for CLI provider
+- `narrativeReviewCache` — persisted narrative reviews keyed by source/PR
+
+Narrative review cache behavior:
+
+- Successful narrative generations are cached with `prData`, `review`, `cachedAt`, and cache validation metadata
+- Cache survives app restarts
+- Cache entries older than 7 days are pruned once at app startup
+- Cached reviews are only offered when the current review input matches the cached fingerprint
 
 ### Secure Storage (`secure-storage.ts`)
 
@@ -222,6 +248,7 @@ Anthropic API key stored at `<userData>/api-key.enc` using Electron's `safeStora
 ### Settings Dialog
 
 Opened via `Cmd+,` or the TopBar settings button. Manages:
+
 - Anthropic API key (set/clear)
 - AI provider selection (API vs CLI)
 - CLI model override
@@ -272,7 +299,9 @@ store
     ├── activeChapterId: string | null
     ├── selectedFile: string | null
     ├── cancelling: boolean
-    └── refreshingFiles: boolean
+    ├── refreshingFiles: boolean
+    ├── cachedReview: NarrativeReviewCacheEntry | null
+    └── cachedReviewLoading: boolean
 ├── settings
 │   ├── aiProvider: 'api' | 'cli'
 │   ├── hasApiKey: boolean
@@ -358,35 +387,35 @@ This is intentionally NOT worktree vs HEAD for unstaged — it shows what change
 
 ### Diff Content Mapping
 
-| Selection | Original | Modified |
-|---|---|---|
-| Unstaged file | `git show :<path>` (index) | `fs.read(path)` (worktree) |
-| Staged file | `git show HEAD:<path>` (HEAD) | `git show :<path>` (index) |
-| New untracked | `""` (empty) | worktree content |
-| New staged | `""` (empty, HEAD missing) | index content |
-| Deleted staged | HEAD content | `""` (index missing) |
-| Deleted unstaged | index content | `""` (worktree deleted) |
-| Narrative (ref-based) | `git show <baseRef>:<path>` | `git show <headRef>:<path>` or `fs.read` for WORKTREE |
+| Selection             | Original                      | Modified                                              |
+| --------------------- | ----------------------------- | ----------------------------------------------------- |
+| Unstaged file         | `git show :<path>` (index)    | `fs.read(path)` (worktree)                            |
+| Staged file           | `git show HEAD:<path>` (HEAD) | `git show :<path>` (index)                            |
+| New untracked         | `""` (empty)                  | worktree content                                      |
+| New staged            | `""` (empty, HEAD missing)    | index content                                         |
+| Deleted staged        | HEAD content                  | `""` (index missing)                                  |
+| Deleted unstaged      | index content                 | `""` (worktree deleted)                               |
+| Narrative (ref-based) | `git show <baseRef>:<path>`   | `git show <headRef>:<path>` or `fs.read` for WORKTREE |
 
 ### Git Commands Reference
 
-| Operation | Command |
-|---|---|
-| Validate repo | `git -C <folder> rev-parse --show-toplevel` |
-| Get status | `git -C <repo> status --porcelain=v2 -z` |
-| Stage file | `git -C <repo> add -- <path>` |
-| Unstage file | `git -C <repo> reset HEAD -- <path>` |
-| Stage all | `git -C <repo> add -A` |
-| Unstage all | `git -C <repo> reset HEAD` |
-| Discard (tracked) | `git -C <repo> restore -- <path>` |
-| Delete (tracked) | `git -C <repo> rm -f -- <path>` |
-| Delete (untracked) | `fs.rm(path, { recursive: true, force: true })` |
-| Get HEAD content | `git -C <repo> show HEAD:<path>` |
-| Get index content | `git -C <repo> show :<path>` |
-| Get ref content | `git -C <repo> show <ref>:<path>` |
-| Branch diff | `git -C <repo> diff <base>...HEAD` |
-| Uncommitted diff | `git -C <repo> diff HEAD` |
-| List untracked | `git -C <repo> ls-files --others --exclude-standard` |
+| Operation             | Command                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| Validate repo         | `git -C <folder> rev-parse --show-toplevel`                             |
+| Get status            | `git -C <repo> status --porcelain=v2 -z`                                |
+| Stage file            | `git -C <repo> add -- <path>`                                           |
+| Unstage file          | `git -C <repo> reset HEAD -- <path>`                                    |
+| Stage all             | `git -C <repo> add -A`                                                  |
+| Unstage all           | `git -C <repo> reset HEAD`                                              |
+| Discard (tracked)     | `git -C <repo> restore -- <path>`                                       |
+| Delete (tracked)      | `git -C <repo> rm -f -- <path>`                                         |
+| Delete (untracked)    | `fs.rm(path, { recursive: true, force: true })`                         |
+| Get HEAD content      | `git -C <repo> show HEAD:<path>`                                        |
+| Get index content     | `git -C <repo> show :<path>`                                            |
+| Get ref content       | `git -C <repo> show <ref>:<path>`                                       |
+| Branch diff           | `git -C <repo> diff <base>...HEAD`                                      |
+| Uncommitted diff      | `git -C <repo> diff HEAD`                                               |
+| List untracked        | `git -C <repo> ls-files --others --exclude-standard`                    |
 | Detect default branch | `git rev-parse --verify main` (then master, origin/main, origin/master) |
 
 ## IPC Channel Reference
@@ -394,11 +423,13 @@ This is intentionally NOT worktree vs HEAD for unstaged — it shows what change
 All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same file defines the renderer-side typed API.
 
 ### Repository (3 channels)
+
 - `repo.getLast` — Get last opened repo path from persisted state
 - `repo.selectFolder` — Show native folder picker dialog
 - `repo.open` — Validate git repo and start watching
 
 ### Git Operations (10 channels)
+
 - `git.getStatus` — Parse `porcelain=v2` status
 - `git.stageFile` / `git.unstageFile` — Stage/unstage single file
 - `git.stageAll` / `git.unstageAll` — Stage/unstage all
@@ -408,12 +439,15 @@ All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same fil
 - `git.getUncommittedDiff` — Build PrData from uncommitted changes
 
 ### Watcher (1 channel)
+
 - `watcher.statusChanged` — Main→renderer event (polling trigger)
 
 ### Shortcuts (3 channels)
+
 - `shortcut.openRepo` / `shortcut.refresh` / `shortcut.openSettings` — Menu accelerator events
 
 ### Settings (12 channels)
+
 - `settings.getApiKey` / `settings.setApiKey` / `settings.hasApiKey` / `settings.clearApiKey` — API key (encrypted)
 - `settings.getLastPrUrl` / `settings.setLastPrUrl` — Last PR URL
 - `settings.getExcludedPatterns` / `settings.setExcludedPatterns` — AI file exclusion patterns
@@ -421,10 +455,12 @@ All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same fil
 - `settings.getCliModel` / `settings.setCliModel` — CLI model override
 
 ### GitHub (2 channels)
+
 - `gh.checkInstalled` — Check if `gh` CLI is available
 - `gh.fetchPr` — Fetch PR metadata, files, and diff
 
 ### LLM / Narrative (6 channels)
+
 - `llm.generateNarrative` — Start narrative generation (returns immediately, streams async)
 - `llm.streamChunk` — Main→renderer: text chunk from LLM
 - `llm.streamComplete` — Main→renderer: parsed NarrativeReview
@@ -433,6 +469,7 @@ All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same fil
 - `llm.truncationWarning` — Main→renderer: diff was truncated for AI
 
 ### Claude CLI (1 channel)
+
 - `claudeCli.checkInstalled` — Check if `claude` binary is available
 
 ## UX Behavior
@@ -442,8 +479,8 @@ All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same fil
 - **Title bar**: Hidden inset (macOS native), traffic lights on left
 - **Top bar**: Repo selector (folder picker), repo name + path, mode toggle, settings button
 - **Main area**: Layout depends on mode:
-  - *Workspace*: Monaco Diff Editor (left) + file lists pane (right)
-  - *Narrative Review*: Chapter navigation (left) + narrative content (center) + file tree (right, optional)
+  - _Workspace_: Monaco Diff Editor (left) + file lists pane (right)
+  - _Narrative Review_: Chapter navigation (left) + narrative content (center) + file tree (right, optional)
 - **Status bar**: Bottom bar showing status info
 - **Resizable panes**: Both horizontal (panel width) and vertical (staged/unstaged ratio) with drag handles
 
@@ -457,10 +494,10 @@ All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same fil
 
 ### Context Menu Enablement
 
-| Action | Enabled When |
-|---|---|
+| Action          | Enabled When                                                                   |
+| --------------- | ------------------------------------------------------------------------------ |
 | Discard Changes | Tracked files with worktree modifications, or untracked files (acts as delete) |
-| Delete File | Any file entry (tracked or untracked) |
+| Delete File     | Any file entry (tracked or untracked)                                          |
 
 - Delete always requires a confirmation modal
 - Discard on untracked files also shows confirmation ("will delete the file")
@@ -485,6 +522,7 @@ All channels defined in `src/shared/ipc.ts`. The `DiffyApi` type in the same fil
 ### Settings Dialog
 
 Opened via `Cmd+,` or settings icon in TopBar. Contains:
+
 - AI Provider toggle (Anthropic API vs Claude CLI)
 - API Key input (set/clear, stored encrypted)
 - CLI Model override (optional)
@@ -492,15 +530,15 @@ Opened via `Cmd+,` or settings icon in TopBar. Contains:
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action | Mode |
-|---|---|---|
-| `Cmd+O` | Open folder | Both |
-| `Cmd+R` | Refresh status | Both |
-| `Cmd+,` | Open Settings | Both |
-| `←` / `→` | Previous/next chapter | Narrative |
-| `Space` / `Shift+Space` | Next/previous chapter | Narrative |
-| `Home` / `End` | First chapter / summary | Narrative |
-| `1`–`9` | Jump to chapter by number | Narrative |
+| Shortcut                | Action                    | Mode      |
+| ----------------------- | ------------------------- | --------- |
+| `Cmd+O`                 | Open folder               | Both      |
+| `Cmd+R`                 | Refresh status            | Both      |
+| `Cmd+,`                 | Open Settings             | Both      |
+| `←` / `→`               | Previous/next chapter     | Narrative |
+| `Space` / `Shift+Space` | Next/previous chapter     | Narrative |
+| `Home` / `End`          | First chapter / summary   | Narrative |
+| `1`–`9`                 | Jump to chapter by number | Narrative |
 
 ### Error Handling UX
 

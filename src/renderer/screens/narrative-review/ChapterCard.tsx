@@ -18,11 +18,7 @@ export function ChapterCard({ chapter, baseRef, headRef }: ChapterCardProps): Re
       className={styles.card}
       aria-labelledby={`chapter-heading-${chapter.id}`}
     >
-      <h2
-        id={`chapter-heading-${chapter.id}`}
-        className={styles.title}
-        tabIndex={-1}
-      >
+      <h2 id={`chapter-heading-${chapter.id}`} className={styles.title} tabIndex={-1}>
         {chapter.title}
       </h2>
       {chapter.diffChunks.map((chunk, i) => (

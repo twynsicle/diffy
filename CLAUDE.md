@@ -93,89 +93,89 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|---|---|
-| `Cmd+O` | Open folder |
-| `Cmd+R` | Refresh status |
-| `Cmd+,` | Open Settings |
-| `←` / `→` | Navigate narrative chapters (in narrative mode) |
-| `Home` / `End` | Jump to first/last chapter |
-| `1`–`9` | Jump to chapter by number |
+| Shortcut       | Action                                          |
+| -------------- | ----------------------------------------------- |
+| `Cmd+O`        | Open folder                                     |
+| `Cmd+R`        | Refresh status                                  |
+| `Cmd+,`        | Open Settings                                   |
+| `←` / `→`      | Navigate narrative chapters (in narrative mode) |
+| `Home` / `End` | Jump to first/last chapter                      |
+| `1`–`9`        | Jump to chapter by number                       |
 
 ## Module Inventory
 
 ### Main Process (`src/main/`)
 
-| File | Purpose |
-|---|---|
-| `index.ts` | Electron app lifecycle, window creation, menu setup |
-| `ipc-handlers.ts` | Composition root — imports and calls 6 domain `register*Handlers` functions, exports `cleanup()` |
-| `repo-state.ts` | Shared `currentRepoRoot` getter/setter used by IPC handler modules |
-| `spawn-runner.ts` | Shared `child_process.spawn` wrapper. Handles timeout, SIGTERM, ENOENT, stdin, streaming stdout, AbortSignal |
-| `git-runner.ts` | Execute git commands via `spawnRunner`. Path validation. Returns `Result<string>` |
-| `parse-status.ts` | Parse `git status --porcelain=v2 -z` output into `FileChange[]` |
-| `file-watcher.ts` | Polling-based watcher (1s `setInterval`). Sends `statusChanged` events |
-| `language-map.ts` | Map file extensions to Monaco language IDs |
-| `detect-binary.ts` | Detect binary files by checking for NUL bytes |
-| `app-menu.ts` | macOS application menu (File, Edit, Window) with keyboard accelerators |
-| `anthropic-client.ts` | Anthropic Messages API client. Streaming SSE, 529 retry with countdown, 2min timeout |
-| `claude-cli-client.ts` | Claude CLI client. Uses `spawnRunner` with `claude -p`, streams stdout, 3min timeout |
-| `gh-runner.ts` | GitHub CLI wrapper. Uses `spawnRunner` for `gh pr view`, `gh api`. PR metadata/files/diff, pagination fix |
-| `narrative-prompt.ts` | Build system+user prompts for narrative generation. Diff truncation (80k token limit), file filtering |
-| `local-diff-builder.ts` | Build `PrData` from local git state (branch diff vs default branch, uncommitted diff vs HEAD) |
-| `persisted-state.ts` | JSON file persistence in `userData/` (last repo, last PR URL, AI provider, CLI model, excluded patterns) |
-| `secure-storage.ts` | Anthropic API key storage using Electron `safeStorage` encryption |
+| File                    | Purpose                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `index.ts`              | Electron app lifecycle, window creation, menu setup                                                          |
+| `ipc-handlers.ts`       | Composition root — imports and calls 6 domain `register*Handlers` functions, exports `cleanup()`             |
+| `repo-state.ts`         | Shared `currentRepoRoot` getter/setter used by IPC handler modules                                           |
+| `spawn-runner.ts`       | Shared `child_process.spawn` wrapper. Handles timeout, SIGTERM, ENOENT, stdin, streaming stdout, AbortSignal |
+| `git-runner.ts`         | Execute git commands via `spawnRunner`. Path validation. Returns `Result<string>`                            |
+| `parse-status.ts`       | Parse `git status --porcelain=v2 -z` output into `FileChange[]`                                              |
+| `file-watcher.ts`       | Polling-based watcher (1s `setInterval`). Sends `statusChanged` events                                       |
+| `language-map.ts`       | Map file extensions to Monaco language IDs                                                                   |
+| `detect-binary.ts`      | Detect binary files by checking for NUL bytes                                                                |
+| `app-menu.ts`           | macOS application menu (File, Edit, Window) with keyboard accelerators                                       |
+| `anthropic-client.ts`   | Anthropic Messages API client. Streaming SSE, 529 retry with countdown, 2min timeout                         |
+| `claude-cli-client.ts`  | Claude CLI client. Uses `spawnRunner` with `claude -p`, streams stdout, 3min timeout                         |
+| `gh-runner.ts`          | GitHub CLI wrapper. Uses `spawnRunner` for `gh pr view`, `gh api`. PR metadata/files/diff, pagination fix    |
+| `narrative-prompt.ts`   | Build system+user prompts for narrative generation. Diff truncation (80k token limit), file filtering        |
+| `local-diff-builder.ts` | Build `PrData` from local git state (branch diff vs default branch, uncommitted diff vs HEAD)                |
+| `persisted-state.ts`    | JSON file persistence in `userData/` (last repo, last PR URL, AI provider, CLI model, excluded patterns)     |
+| `secure-storage.ts`     | Anthropic API key storage using Electron `safeStorage` encryption                                            |
 
 ### IPC Handler Modules (`src/main/ipc/`)
 
-| File | Purpose |
-|---|---|
-| `repo-handlers.ts` | 3 handlers: get last repo, select folder, open repo |
-| `git-handlers.ts` | 7 handlers: status, stage/unstage file/all, discard, delete. Private `isTracked()` helper |
-| `diff-handlers.ts` | 3 handlers: get diff content, branch diff, uncommitted diff. Private `gitShow()` helper |
-| `settings-handlers.ts` | 12 handlers: API key CRUD, last PR URL, AI provider, CLI model, excluded patterns |
-| `github-handlers.ts` | 2 handlers: check `gh` installed, fetch PR data |
+| File                    | Purpose                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `repo-handlers.ts`      | 3 handlers: get last repo, select folder, open repo                                                                        |
+| `git-handlers.ts`       | 7 handlers: status, stage/unstage file/all, discard, delete. Private `isTracked()` helper                                  |
+| `diff-handlers.ts`      | 3 handlers: get diff content, branch diff, uncommitted diff. Private `gitShow()` helper                                    |
+| `settings-handlers.ts`  | 12 handlers: API key CRUD, last PR URL, AI provider, CLI model, excluded patterns                                          |
+| `github-handlers.ts`    | 2 handlers: check `gh` installed, fetch PR data                                                                            |
 | `narrative-handlers.ts` | 3 handlers: generate narrative, cancel generation, check Claude CLI. Owns `activeGenerations` state. Returns `{ cleanup }` |
 
 ### Shared (`src/shared/`)
 
-| File | Purpose |
-|---|---|
-| `ipc.ts` | IPC channel name constants (39 channels) and `DiffyApi` type definition |
-| `types.ts` | Domain types: `FileChange`, `Section`, `DiffContent`, `DiffRange`, `DiffChunk`, `FileAtRefRequest`, `FileAtRefResult`, `Result<T>`, `AppMode`, `NarrativeReview`, `PrData`, `PrFileChange`, `Insight`, etc. |
-| `ai-file-filter.ts` | Exclude lock files, snapshots, minified assets from AI processing. Supports user-defined patterns |
-| `merge-ranges.ts` | Merge nearby `DiffRange[]` (within configurable gap) and expand with context lines |
-| `parse-pr-url.ts` | Parse `github.com/:owner/:repo/pull/:number` URLs into `PrReference` |
+| File                | Purpose                                                                                                                                                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ipc.ts`            | IPC channel name constants (39 channels) and `DiffyApi` type definition                                                                                                                                     |
+| `types.ts`          | Domain types: `FileChange`, `Section`, `DiffContent`, `DiffRange`, `DiffChunk`, `FileAtRefRequest`, `FileAtRefResult`, `Result<T>`, `AppMode`, `NarrativeReview`, `PrData`, `PrFileChange`, `Insight`, etc. |
+| `ai-file-filter.ts` | Exclude lock files, snapshots, minified assets from AI processing. Supports user-defined patterns                                                                                                           |
+| `merge-ranges.ts`   | Merge nearby `DiffRange[]` (within configurable gap) and expand with context lines                                                                                                                          |
+| `parse-pr-url.ts`   | Parse `github.com/:owner/:repo/pull/:number` URLs into `PrReference`                                                                                                                                        |
 
 ### Renderer — Store (`src/renderer/store/`)
 
-| File | Purpose |
-|---|---|
-| `index.ts` | Store configuration. Combines 7 slice reducers + error toast middleware |
-| `repo-slice.ts` | Repo state: `repoRoot`, `displayName`, open status/error |
-| `changes-slice.ts` | File changes: `staged[]`, `unstaged[]`, selection with persistence logic |
-| `diff-slice.ts` | Diff content: `original`, `modified`, `language`, `isBinary`, `wrapEnabled`, `fetching`. Includes `fetchOrigin` thunk |
-| `ui-slice.ts` | UI state: toasts, confirm modal, settings dialog open/close |
-| `mode-slice.ts` | App mode: `workspace` or `narrative-review` |
-| `narrative-slice.ts` | Narrative state: source, PR data, review, stream text, active chapter, generation status |
-| `settings-slice.ts` | Settings state: AI provider, API key status, CLI model, excluded patterns, last PR URL. All settings IPC wrapped in thunks |
-| `error-toast-middleware.ts` | Middleware that auto-creates error toasts from rejected thunks |
+| File                        | Purpose                                                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`                  | Store configuration. Combines 7 slice reducers + error toast middleware                                                    |
+| `repo-slice.ts`             | Repo state: `repoRoot`, `displayName`, open status/error                                                                   |
+| `changes-slice.ts`          | File changes: `staged[]`, `unstaged[]`, selection with persistence logic                                                   |
+| `diff-slice.ts`             | Diff content: `original`, `modified`, `language`, `isBinary`, `wrapEnabled`, `fetching`. Includes `fetchOrigin` thunk      |
+| `ui-slice.ts`               | UI state: toasts, confirm modal, settings dialog open/close                                                                |
+| `mode-slice.ts`             | App mode: `workspace` or `narrative-review`                                                                                |
+| `narrative-slice.ts`        | Narrative state: source, PR data, review, stream text, active chapter, generation status                                   |
+| `settings-slice.ts`         | Settings state: AI provider, API key status, CLI model, excluded patterns, last PR URL. All settings IPC wrapped in thunks |
+| `error-toast-middleware.ts` | Middleware that auto-creates error toasts from rejected thunks                                                             |
 
 ### Renderer — Hooks (`src/renderer/hooks/`)
 
-| File | Purpose |
-|---|---|
-| `use-app-dispatch.ts` | Typed `useDispatch` wrapper |
-| `use-app-selector.ts` | Typed `useSelector` wrapper |
-| `use-status-listener.ts` | Listen for `statusChanged` IPC events → dispatch `refreshStatus` |
-| `use-restore-last-repo.ts` | On mount, re-open last repo from persisted state |
-| `use-diff-loader.ts` | Load diff when selection changes; abort in-flight requests |
-| `use-keyboard-shortcuts.ts` | Handle `Cmd+O`, `Cmd+R`, `Cmd+,` shortcuts via IPC |
-| `use-narrative-stream.ts` | Subscribe to LLM stream chunks/complete/error IPC events |
-| `use-narrative-keyboard.ts` | `←`/`→`/`Home`/`End`/`1-9` chapter navigation in narrative mode |
+| File                           | Purpose                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `use-app-dispatch.ts`          | Typed `useDispatch` wrapper                                                     |
+| `use-app-selector.ts`          | Typed `useSelector` wrapper                                                     |
+| `use-status-listener.ts`       | Listen for `statusChanged` IPC events → dispatch `refreshStatus`                |
+| `use-restore-last-repo.ts`     | On mount, re-open last repo from persisted state                                |
+| `use-diff-loader.ts`           | Load diff when selection changes; abort in-flight requests                      |
+| `use-keyboard-shortcuts.ts`    | Handle `Cmd+O`, `Cmd+R`, `Cmd+,` shortcuts via IPC                              |
+| `use-narrative-stream.ts`      | Subscribe to LLM stream chunks/complete/error IPC events                        |
+| `use-narrative-keyboard.ts`    | `←`/`→`/`Home`/`End`/`1-9` chapter navigation in narrative mode                 |
 | `use-narrative-diff-loader.ts` | Load diff for selected file in narrative mode (branch/uncommitted/PR ref-based) |
-| `use-split-pane.ts` | Drag-to-resize vertical split (staged/unstaged ratio) |
-| `use-resizable-panel.ts` | Drag-to-resize horizontal panel width with localStorage persistence |
+| `use-split-pane.ts`            | Drag-to-resize vertical split (staged/unstaged ratio)                           |
+| `use-resizable-panel.ts`       | Drag-to-resize horizontal panel width with localStorage persistence             |
 
 ### Renderer — Shared Components (`src/renderer/components/`)
 
@@ -191,13 +191,13 @@ Diffy operates on three states: **HEAD** (committed), **Index** (staged), **Work
 
 ### Renderer — Utils (`src/renderer/utils/`)
 
-| File | Purpose |
-|---|---|
-| `file-tree.ts` | Build hierarchical file tree from flat `FileChange[]` with path compression |
-| `truncate-path.ts` | Truncate long file paths with ellipsis for display |
-| `parse-diff-chunk.ts` | Split unified diff chunk content into original/modified sides (unused — kept for reference) |
-| `generation-duration.ts` | Record and average narrative generation durations in localStorage |
-| `status-adapter.ts` | Convert PR file statuses to FileChange objects for unified file tree rendering |
+| File                     | Purpose                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| `file-tree.ts`           | Build hierarchical file tree from flat `FileChange[]` with path compression                 |
+| `truncate-path.ts`       | Truncate long file paths with ellipsis for display                                          |
+| `parse-diff-chunk.ts`    | Split unified diff chunk content into original/modified sides (unused — kept for reference) |
+| `generation-duration.ts` | Record and average narrative generation durations in localStorage                           |
+| `status-adapter.ts`      | Convert PR file statuses to FileChange objects for unified file tree rendering              |
 
 ## Documentation
 

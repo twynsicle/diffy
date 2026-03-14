@@ -27,7 +27,13 @@ export function ChapterNav(): ReactElement {
   const files = useAppSelector(selectNarrativeFileList)
   const selectedFile = useAppSelector(selectSelectedNarrativeFile)
   const refreshing = useAppSelector(selectRefreshingFiles)
-  const { width, handleMouseDown } = useResizablePanel({ defaultWidth: 300, minWidth: 180, maxWidth: 600, edge: 'left', storageKey: 'diffy:navPanelWidth' })
+  const { width, handleMouseDown } = useResizablePanel({
+    defaultWidth: 300,
+    minWidth: 180,
+    maxWidth: 600,
+    edge: 'left',
+    storageKey: 'diffy:navPanelWidth',
+  })
 
   const handleClick = useCallback(
     (id: string) => {
@@ -73,7 +79,9 @@ export function ChapterNav(): ReactElement {
             <button
               key={ch.id}
               className={`${styles.item} ${ch.id === activeId ? styles.active : ''}`}
-              onClick={() => { handleClick(ch.id) }}
+              onClick={() => {
+                handleClick(ch.id)
+              }}
               type="button"
               aria-current={ch.id === activeId ? 'true' : undefined}
             >
@@ -84,7 +92,9 @@ export function ChapterNav(): ReactElement {
           <div className={styles.divider} />
           <button
             className={`${styles.item} ${activeId === SUMMARY_SECTION_ID ? styles.active : ''}`}
-            onClick={() => { handleClick(SUMMARY_SECTION_ID) }}
+            onClick={() => {
+              handleClick(SUMMARY_SECTION_ID)
+            }}
             type="button"
             aria-current={activeId === SUMMARY_SECTION_ID ? 'true' : undefined}
           >

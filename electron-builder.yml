@@ -5,16 +5,16 @@ directories:
   output: dist
 files:
   - out/**/*
-  - "!src/**"
-  - "!docs/**"
-  - "!e2e/**"
-  - "!electron.vite.config.*"
-  - "!tsconfig*"
-  - "!eslint*"
-  - "!vitest*"
-  - "!playwright*"
-  - "!.prettierrc*"
-  - "!.editorconfig"
+  - '!src/**'
+  - '!docs/**'
+  - '!e2e/**'
+  - '!electron.vite.config.*'
+  - '!tsconfig*'
+  - '!eslint*'
+  - '!vitest*'
+  - '!playwright*'
+  - '!.prettierrc*'
+  - '!.editorconfig'
 mac:
   target:
     - dmg

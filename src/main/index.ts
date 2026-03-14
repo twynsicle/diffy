@@ -4,6 +4,7 @@ import { BrowserWindow, Menu, app } from 'electron'
 
 import { buildAppMenu } from './app-menu'
 import { cleanup, registerIpcHandlers } from './ipc-handlers'
+import { pruneExpiredNarrativeReviews } from './persisted-state'
 
 function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
@@ -35,6 +36,7 @@ function createWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(() => {
+  pruneExpiredNarrativeReviews()
   Menu.setApplicationMenu(buildAppMenu())
   const mainWindow = createWindow()
   registerIpcHandlers(mainWindow)

@@ -28,11 +28,7 @@ export function App(): ReactElement {
     <div className={styles.app}>
       <TopBar />
       <div className={styles.content}>
-        {activeMode === 'narrative-review' ? (
-          <NarrativeShell />
-        ) : (
-          <WorkspaceShell />
-        )}
+        {activeMode === 'narrative-review' ? <NarrativeShell /> : <WorkspaceShell />}
       </div>
       <StatusBar />
       <ToastContainer />

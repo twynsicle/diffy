@@ -54,6 +54,55 @@
   padding-top: 4px;
 }
 
+.editorWrapper :global(.monaco-editor .diff-hidden-lines) {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .top),
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .bottom) {
+  height: 10px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .top) {
+  transform: translate(0, 8px);
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .bottom) {
+  transform: translate(0, -8px);
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center) {
+  display: flex !important;
+  align-items: center;
+  min-width: 0;
+  height: 26px;
+  cursor: pointer;
+  padding-right: 10px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center > div:first-child) {
+  flex-shrink: 0;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center > div:last-child) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center span),
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center a),
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center .breadcrumb-item) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editorWrapper :global(.monaco-editor .diff-hidden-lines .center span.codicon) {
+  margin-right: 2px;
+}
+
 .editorWrapper + .editorWrapper {
   border-top: 1px solid var(--border-subtle);
 }

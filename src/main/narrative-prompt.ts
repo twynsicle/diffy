@@ -41,7 +41,10 @@ function truncateDiff(diff: string): { result: string; wasTruncated: boolean } {
 
   const result = truncated.join('')
   if (result.length > MAX_DIFF_CHARS) {
-    return { result: result.slice(0, MAX_DIFF_CHARS) + '\n[... diff truncated due to size ...]', wasTruncated: true }
+    return {
+      result: result.slice(0, MAX_DIFF_CHARS) + '\n[... diff truncated due to size ...]',
+      wasTruncated: true,
+    }
   }
   return { result, wasTruncated: true }
 }
@@ -120,18 +123,24 @@ Guidelines:
   const filteredFiles = prData.files.filter((f) => !shouldExclude(f.filename))
 
   const fileList = filteredFiles
-    .map((f) => `  ${f.status.padEnd(10)} +${String(f.additions)}/-${String(f.deletions)}  ${f.filename}`)
+    .map(
+      (f) =>
+        `  ${f.status.padEnd(10)} +${String(f.additions)}/-${String(f.deletions)}  ${f.filename}`,
+    )
     .join('\n')
 
   const filteredDiff = filterDiffPatches(prData.diff, shouldExclude)
   const { result: diff, wasTruncated } = truncateDiff(filteredDiff)
   const hunkIndex = buildDiffHunkIndex(diff)
-  const hunkCatalog = hunkIndex.hunks.length === 0
-    ? '  (No patch hunks were detected in the provided diff.)'
-    : hunkIndex.hunks
-      .map((hunk) =>
-        `  ${hunk.id}  ${hunk.filename}  ${hunk.header}  original ${formatLineSpan(hunk.original.startLine, hunk.original.lineCount)}  modified ${formatLineSpan(hunk.modified.startLine, hunk.modified.lineCount)}`)
-      .join('\n')
+  const hunkCatalog =
+    hunkIndex.hunks.length === 0
+      ? '  (No patch hunks were detected in the provided diff.)'
+      : hunkIndex.hunks
+          .map(
+            (hunk) =>
+              `  ${hunk.id}  ${hunk.filename}  ${hunk.header}  original ${formatLineSpan(hunk.original.startLine, hunk.original.lineCount)}  modified ${formatLineSpan(hunk.modified.startLine, hunk.modified.lineCount)}`,
+          )
+          .join('\n')
 
   let user = `# Pull Request: ${prData.title}
 
@@ -153,7 +162,8 @@ ${diff}
 \`\`\``
 
   if (wasTruncated) {
-    user += '\n\nNote: Some large file diffs were truncated. Focus your narrative on the available content.'
+    user +=
+      '\n\nNote: Some large file diffs were truncated. Focus your narrative on the available content.'
   }
 
   return { system, user, wasTruncated, hunkIndex }

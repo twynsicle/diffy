@@ -1,4 +1,4 @@
-import { type ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
+import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { DiffEditor } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
@@ -17,7 +17,11 @@ const CONTEXT_LINES = 5
 const MIN_EDITOR_HEIGHT = 60
 const EDITOR_HEIGHT_PADDING = 12
 
-function buildModelPath(filename: string, snippetKey: string, side: 'original' | 'modified'): string {
+function buildModelPath(
+  filename: string,
+  snippetKey: string,
+  side: 'original' | 'modified',
+): string {
   const encodedPath = filename
     .split('/')
     .map((segment) => encodeURIComponent(segment))
@@ -43,6 +47,37 @@ type InlineDiffSnippetEditorProps = {
   expanded: boolean
 }
 
+type ScrollSnapshot = {
+  left: number
+  top: number
+  windowX: number
+  windowY: number
+  scroller: HTMLElement | null
+}
+
+function captureScrollSnapshot(node: HTMLElement): ScrollSnapshot {
+  const scroller = node.closest<HTMLElement>('[data-narrative-scroll-container="true"]')
+
+  return {
+    left: scroller?.scrollLeft ?? 0,
+    top: scroller?.scrollTop ?? 0,
+    windowX: window.scrollX,
+    windowY: window.scrollY,
+    scroller,
+  }
+}
+
+function restoreScrollSnapshot(snapshot: ScrollSnapshot): void {
+  if (snapshot.scroller) {
+    snapshot.scroller.scrollLeft = snapshot.left
+    snapshot.scroller.scrollTop = snapshot.top
+  }
+
+  if (window.scrollX !== snapshot.windowX || window.scrollY !== snapshot.windowY) {
+    window.scrollTo(snapshot.windowX, snapshot.windowY)
+  }
+}
+
 function InlineDiffSnippetEditor({
   chunkFilename,
   language,
@@ -51,20 +86,24 @@ function InlineDiffSnippetEditor({
 }: InlineDiffSnippetEditorProps): ReactElement {
   const [diffEditor, setDiffEditor] = useState<editor.IStandaloneDiffEditor | null>(null)
   const [editorHeight, setEditorHeight] = useState(MIN_EDITOR_HEIGHT)
+  const pendingScrollSnapshotRef = useRef<ScrollSnapshot | null>(null)
+  const hasHandledInitialFocusRef = useRef(false)
 
   useEffect(() => {
     if (!diffEditor) return
 
     const originalEditor = diffEditor.getOriginalEditor()
     const modifiedEditor = diffEditor.getModifiedEditor()
-    const lineNumbers = expanded ? 'on' : 'off'
 
     originalEditor.updateOptions({
-      lineNumbers: expanded ? lineNumbers : makeOffsetLineNumbers(snippet.originalStartLine),
+      lineNumbers: expanded ? 'on' : makeOffsetLineNumbers(snippet.originalStartLine),
+      lineNumbersMinChars: 3,
     })
     modifiedEditor.updateOptions({
-      lineNumbers: expanded ? lineNumbers : makeOffsetLineNumbers(snippet.modifiedStartLine),
+      lineNumbers: expanded ? 'on' : makeOffsetLineNumbers(snippet.modifiedStartLine),
+      lineNumbersMinChars: 3,
     })
+    diffEditor.layout()
 
     const updateHeight = (): void => {
       const contentHeight = Math.max(
@@ -86,18 +125,87 @@ function InlineDiffSnippetEditor({
       modifiedDisposable.dispose()
       diffDisposable.dispose()
     }
-  }, [
-    diffEditor,
-    expanded,
-    snippet.modifiedStartLine,
-    snippet.originalStartLine,
-  ])
+  }, [diffEditor, expanded, snippet.modifiedStartLine, snippet.originalStartLine])
+
+  useEffect(() => {
+    if (!diffEditor || expanded) return
+
+    const container = diffEditor.getContainerDomNode()
+    const handleClick = (event: MouseEvent): void => {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) return
+
+      const center = target.closest('.diff-hidden-lines .center')
+      if (!center) return
+      if (target.closest('a[role="button"], .breadcrumb-item')) return
+
+      const unfoldButton = center.querySelector<HTMLElement>('a[role="button"]')
+      unfoldButton?.click()
+    }
+
+    const handleDoubleClick = (event: MouseEvent): void => {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) return
+
+      const center = target.closest('.diff-hidden-lines .center')
+      if (!center) return
+
+      const unfoldButton = center.querySelector<HTMLElement>('a[role="button"]')
+      unfoldButton?.click()
+    }
+
+    container.addEventListener('click', handleClick)
+    container.addEventListener('dblclick', handleDoubleClick)
+
+    return () => {
+      container.removeEventListener('click', handleClick)
+      container.removeEventListener('dblclick', handleDoubleClick)
+    }
+  }, [diffEditor, expanded])
+
+  useEffect(() => {
+    if (!diffEditor) return
+
+    const container = diffEditor.getContainerDomNode()
+    const originalEditor = diffEditor.getOriginalEditor()
+    const modifiedEditor = diffEditor.getModifiedEditor()
+
+    const handlePointerDown = (): void => {
+      if (hasHandledInitialFocusRef.current) return
+      pendingScrollSnapshotRef.current = captureScrollSnapshot(container)
+    }
+
+    const handleInitialFocus = (): void => {
+      if (hasHandledInitialFocusRef.current) return
+
+      const snapshot = pendingScrollSnapshotRef.current
+      if (!snapshot) return
+
+      hasHandledInitialFocusRef.current = true
+      pendingScrollSnapshotRef.current = null
+
+      requestAnimationFrame(() => {
+        restoreScrollSnapshot(snapshot)
+        requestAnimationFrame(() => {
+          restoreScrollSnapshot(snapshot)
+        })
+      })
+    }
+
+    container.addEventListener('pointerdown', handlePointerDown, true)
+
+    const originalFocusDisposable = originalEditor.onDidFocusEditorWidget(handleInitialFocus)
+    const modifiedFocusDisposable = modifiedEditor.onDidFocusEditorWidget(handleInitialFocus)
+
+    return () => {
+      container.removeEventListener('pointerdown', handlePointerDown, true)
+      originalFocusDisposable.dispose()
+      modifiedFocusDisposable.dispose()
+    }
+  }, [diffEditor])
 
   return (
-    <div
-      className={styles.editorWrapper}
-      style={{ height: editorHeight }}
-    >
+    <div className={styles.editorWrapper} style={{ height: editorHeight }}>
       <DiffEditor
         original={snippet.original}
         modified={snippet.modified}
@@ -112,7 +220,11 @@ function InlineDiffSnippetEditor({
           readOnly: true,
           renderSideBySide: true,
           minimap: { enabled: false },
-          lineNumbers: expanded ? 'on' : 'off',
+          renderOverviewRuler: false,
+          overviewRulerLanes: 0,
+          overviewRulerBorder: false,
+          lineNumbers: 'on',
+          lineNumbersMinChars: 3,
           automaticLayout: true,
           scrollBeyondLastLine: false,
           scrollbar: {
@@ -152,21 +264,25 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
     setLoading(true)
     setError(null)
 
-    void window.api.getFileAtRef({
-      path: chunk.filename,
-      baseRef,
-      headRef,
-    }).then((result) => {
-      if (cancelled) return
-      if (result.ok) {
-        setFileData(result.data)
-      } else {
-        setError(result.error)
-      }
-      setLoading(false)
-    })
+    void window.api
+      .getFileAtRef({
+        path: chunk.filename,
+        baseRef,
+        headRef,
+      })
+      .then((result) => {
+        if (cancelled) return
+        if (result.ok) {
+          setFileData(result.data)
+        } else {
+          setError(result.error)
+        }
+        setLoading(false)
+      })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [chunk.filename, baseRef, headRef])
 
   const rangeLabel = useMemo(() => {
@@ -178,13 +294,15 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
     if (!fileData) return []
 
     if (expanded) {
-      return [{
-        key: 'full-file',
-        original: fileData.original,
-        modified: fileData.modified,
-        originalStartLine: 1,
-        modifiedStartLine: 1,
-      }]
+      return [
+        {
+          key: 'full-file',
+          original: fileData.original,
+          modified: fileData.modified,
+          originalStartLine: 1,
+          modifiedStartLine: 1,
+        },
+      ]
     }
 
     const collapsedSnippets = buildInlineDiffSnippets({
@@ -201,13 +319,15 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
     }
 
     // If AI hunks are fully out of bounds, fall back to full-file view instead of rendering an empty diff.
-    return [{
-      key: 'fallback-full-file',
-      original: fileData.original,
-      modified: fileData.modified,
-      originalStartLine: 1,
-      modifiedStartLine: 1,
-    }]
+    return [
+      {
+        key: 'fallback-full-file',
+        original: fileData.original,
+        modified: fileData.modified,
+        originalStartLine: 1,
+        modifiedStartLine: 1,
+      },
+    ]
   }, [chunkHunks, fileData, expanded])
 
   useEffect(() => {
@@ -233,17 +353,7 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
         modifiedStartLine: snippet.modifiedStartLine,
       })),
     })
-  }, [
-    baseRef,
-    chunk.filename,
-    chunkHunks,
-    error,
-    expanded,
-    fileData,
-    headRef,
-    loading,
-    snippets,
-  ])
+  }, [baseRef, chunk.filename, chunkHunks, error, expanded, fileData, headRef, loading, snippets])
 
   const handleToggleExpand = useCallback(() => {
     setExpanded((prev) => !prev)
@@ -282,11 +392,7 @@ export function InlineDiffChunk({ chunk, baseRef, headRef }: InlineDiffChunkProp
         <span className={styles.badge}>{resolvedLanguage}</span>
         {!expanded && rangeLabel && <span className={styles.badge}>{rangeLabel}</span>}
         {fileData && (
-          <button
-            type="button"
-            className={styles.expandButton}
-            onClick={handleToggleExpand}
-          >
+          <button type="button" className={styles.expandButton} onClick={handleToggleExpand}>
             {expanded ? 'Show Changes Only' : 'Show Full File'}
           </button>
         )}

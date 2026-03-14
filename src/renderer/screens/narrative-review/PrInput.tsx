@@ -37,7 +37,9 @@ export function PrInput({ onBack }: PrInputProps): ReactElement {
 
     const ref = parsePrUrl(inputValue)
     if (!ref) {
-      setValidationError('Enter a valid GitHub PR URL (e.g. https://github.com/owner/repo/pull/123)')
+      setValidationError(
+        'Enter a valid GitHub PR URL (e.g. https://github.com/owner/repo/pull/123)',
+      )
       return
     }
 
@@ -61,12 +63,7 @@ export function PrInput({ onBack }: PrInputProps): ReactElement {
       />
       <div className={styles.actions}>
         {onBack && (
-          <button
-            className={styles.backButton}
-            type="button"
-            onClick={onBack}
-            disabled={loading}
-          >
+          <button className={styles.backButton} type="button" onClick={onBack} disabled={loading}>
             Back
           </button>
         )}

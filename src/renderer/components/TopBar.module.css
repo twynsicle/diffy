@@ -39,7 +39,9 @@
   cursor: pointer;
   font-size: var(--font-size-sm);
   padding: 2px var(--spacing-sm);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .button:hover {
@@ -62,7 +64,9 @@
   cursor: pointer;
   font-size: var(--font-size-sm);
   padding: 2px var(--spacing-sm);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .modeButton:first-child {
@@ -105,6 +109,10 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

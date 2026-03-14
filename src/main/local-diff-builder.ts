@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -8,6 +9,10 @@ import { runGit } from './git-runner'
 
 const DIFF_TIMEOUT_MS = 30_000
 const MAX_UNTRACKED_FILE_SIZE = 100 * 1024
+
+function sha256Hex(value: string): string {
+  return createHash('sha256').update(value, 'utf-8').digest('hex')
+}
 
 type NameStatusEntry = {
   status: string
@@ -109,7 +114,15 @@ export async function buildBranchDiff(repoRoot: string): Promise<Result<PrData>>
 
   const base = await detectDefaultBranch(repoRoot)
 
-  const [diffResult, nameStatusResult, numStatResult, logResult, authorResult] = await Promise.all([
+  const [
+    diffResult,
+    nameStatusResult,
+    numStatResult,
+    logResult,
+    authorResult,
+    headShaResult,
+    baseShaResult,
+  ] = await Promise.all([
     runGit({
       repoRoot,
       args: ['diff', `${base}...HEAD`],
@@ -131,6 +144,14 @@ export async function buildBranchDiff(repoRoot: string): Promise<Result<PrData>>
       repoRoot,
       args: ['config', 'user.name'],
     }),
+    runGit({
+      repoRoot,
+      args: ['rev-parse', 'HEAD'],
+    }),
+    runGit({
+      repoRoot,
+      args: ['rev-parse', base],
+    }),
   ])
 
   if (!diffResult.ok) {
@@ -142,6 +163,8 @@ export async function buildBranchDiff(repoRoot: string): Promise<Result<PrData>>
   const files = mergeFileStats(nameStatus, numStat)
   const body = logResult.ok ? logResult.data.trim() : ''
   const author = authorResult.ok ? authorResult.data.trim() : 'Unknown'
+  const headSha = headShaResult.ok ? headShaResult.data.trim() : ''
+  const baseSha = baseShaResult.ok ? baseShaResult.data.trim() : ''
 
   return {
     ok: true,
@@ -153,35 +176,54 @@ export async function buildBranchDiff(repoRoot: string): Promise<Result<PrData>>
       headRefName: branch,
       files,
       diff: diffResult.data,
+      cacheMetadata:
+        headSha && baseSha
+          ? {
+              source: 'branch-diff',
+              branchName: branch,
+              headSha,
+              baseSha,
+            }
+          : undefined,
     },
   }
 }
 
 export async function buildUncommittedDiff(repoRoot: string): Promise<Result<PrData>> {
-  const [trackedDiffResult, nameStatusResult, numStatResult, untrackedResult, authorResult] =
-    await Promise.all([
-      runGit({
-        repoRoot,
-        args: ['diff', 'HEAD'],
-        timeoutMs: DIFF_TIMEOUT_MS,
-      }),
-      runGit({
-        repoRoot,
-        args: ['diff', '--name-status', 'HEAD'],
-      }),
-      runGit({
-        repoRoot,
-        args: ['diff', '--numstat', 'HEAD'],
-      }),
-      runGit({
-        repoRoot,
-        args: ['ls-files', '--others', '--exclude-standard'],
-      }),
-      runGit({
-        repoRoot,
-        args: ['config', 'user.name'],
-      }),
-    ])
+  const [
+    trackedDiffResult,
+    nameStatusResult,
+    numStatResult,
+    untrackedResult,
+    authorResult,
+    headShaResult,
+  ] = await Promise.all([
+    runGit({
+      repoRoot,
+      args: ['diff', 'HEAD'],
+      timeoutMs: DIFF_TIMEOUT_MS,
+    }),
+    runGit({
+      repoRoot,
+      args: ['diff', '--name-status', 'HEAD'],
+    }),
+    runGit({
+      repoRoot,
+      args: ['diff', '--numstat', 'HEAD'],
+    }),
+    runGit({
+      repoRoot,
+      args: ['ls-files', '--others', '--exclude-standard'],
+    }),
+    runGit({
+      repoRoot,
+      args: ['config', 'user.name'],
+    }),
+    runGit({
+      repoRoot,
+      args: ['rev-parse', 'HEAD'],
+    }),
+  ])
 
   if (!trackedDiffResult.ok) {
     return { ok: false, error: `Failed to get uncommitted diff: ${trackedDiffResult.error}` }
@@ -234,6 +276,8 @@ export async function buildUncommittedDiff(repoRoot: string): Promise<Result<PrD
   }
 
   const author = authorResult.ok ? authorResult.data.trim() : 'Unknown'
+  const headSha = headShaResult.ok ? headShaResult.data.trim() : ''
+  const diffHash = sha256Hex(fullDiff)
 
   return {
     ok: true,
@@ -245,6 +289,13 @@ export async function buildUncommittedDiff(repoRoot: string): Promise<Result<PrD
       headRefName: 'working tree',
       files,
       diff: fullDiff,
+      cacheMetadata: headSha
+        ? {
+            source: 'uncommitted',
+            headSha,
+            diffHash,
+          }
+        : undefined,
     },
   }
 }

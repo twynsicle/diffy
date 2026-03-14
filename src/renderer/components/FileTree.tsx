@@ -56,7 +56,17 @@ export function FileTree({
       onFolderAction,
       variant,
     }),
-    [rows, selectedPath, onSelect, onAction, actionLabel, onContextMenu, onToggleFolder, onFolderAction, variant],
+    [
+      rows,
+      selectedPath,
+      onSelect,
+      onAction,
+      actionLabel,
+      onContextMenu,
+      onToggleFolder,
+      onFolderAction,
+      variant,
+    ],
   )
 
   if (files.length === 0) {

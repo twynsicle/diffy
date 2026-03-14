@@ -74,12 +74,16 @@ export function DiffPanel({ filePath, sectionBadge, onClose }: DiffPanelProps): 
     <div className={styles.panel}>
       <div className={styles.toolbar}>
         <div className={styles.fileInfo}>
-          <span className={styles.filePath} title={filePath}>{filePath}</span>
+          <span className={styles.filePath} title={filePath}>
+            {filePath}
+          </span>
           {sectionBadge && <span className={styles.sectionBadge}>{sectionBadge}</span>}
         </div>
         <button
           className={`${styles.wrapBtn} ${wrapEnabled ? styles.wrapBtnActive : ''}`}
-          onClick={() => { dispatch(toggleWrap()) }}
+          onClick={() => {
+            dispatch(toggleWrap())
+          }}
           type="button"
           title="Toggle word wrap"
         >

@@ -44,7 +44,9 @@
   font-family: var(--font-family);
   padding: var(--spacing-xs) var(--spacing-lg);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .backButton:hover:not(:disabled) {
@@ -86,8 +88,12 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error {

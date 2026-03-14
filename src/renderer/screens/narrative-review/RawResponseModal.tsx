@@ -20,12 +20,19 @@ export function RawResponseModal({ text, onClose }: RawResponseModalProps): Reac
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
-    return () => { document.removeEventListener('keydown', handleKeyDown) }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [handleKeyDown])
 
   return createPortal(
     <div className={styles.backdrop} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => { e.stopPropagation() }}>
+      <div
+        className={styles.modal}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+      >
         <div className={styles.header}>
           <span className={styles.title}>Raw LLM Response</span>
           <button className={styles.closeBtn} onClick={onClose} type="button">

@@ -45,7 +45,9 @@ export function SettingsDialog(): ReactElement | null {
     if (!isOpen) return
     void dispatch(loadSettings())
     setApiKey('')
-    setTimeout(() => { inputRef.current?.focus() }, 0)
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 0)
   }, [isOpen, dispatch])
 
   // Sync local CLI model input when store value loads
@@ -53,9 +55,12 @@ export function SettingsDialog(): ReactElement | null {
     setLocalCliModel(storedCliModel)
   }, [storedCliModel])
 
-  const handleProviderChange = useCallback((newProvider: AiProvider) => {
-    void dispatch(saveAiProvider(newProvider))
-  }, [dispatch])
+  const handleProviderChange = useCallback(
+    (newProvider: AiProvider) => {
+      void dispatch(saveAiProvider(newProvider))
+    },
+    [dispatch],
+  )
 
   const handleClose = useCallback(() => {
     setApiKey('')
@@ -111,13 +116,16 @@ export function SettingsDialog(): ReactElement | null {
     }
   }, [newPattern, excludedPatterns, dispatch])
 
-  const handleRemovePattern = useCallback(async (pattern: string) => {
-    try {
-      await dispatch(removeExcludedPattern(pattern)).unwrap()
-    } catch (err) {
-      dispatch(addToast({ message: String(err), variant: 'error' }))
-    }
-  }, [dispatch])
+  const handleRemovePattern = useCallback(
+    async (pattern: string) => {
+      try {
+        await dispatch(removeExcludedPattern(pattern)).unwrap()
+      } catch (err) {
+        dispatch(addToast({ message: String(err), variant: 'error' }))
+      }
+    },
+    [dispatch],
+  )
 
   useEffect(() => {
     if (!isOpen) return
@@ -131,14 +139,21 @@ export function SettingsDialog(): ReactElement | null {
     }
 
     document.addEventListener('keydown', handleKeyDown)
-    return () => { document.removeEventListener('keydown', handleKeyDown) }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [isOpen, handleClose, handleSave])
 
   if (!isOpen) return null
 
   return createPortal(
     <div className={styles['backdrop']} onClick={handleClose}>
-      <div className={styles['modal']} onClick={(e) => { e.stopPropagation() }}>
+      <div
+        className={styles['modal']}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+      >
         <div className={styles['title']}>Settings</div>
 
         <div className={styles['field']}>
@@ -146,14 +161,18 @@ export function SettingsDialog(): ReactElement | null {
           <div className={styles['providerToggle']}>
             <button
               className={`${styles['providerOption']} ${provider === 'api' ? styles['providerActive'] : ''}`}
-              onClick={() => { handleProviderChange('api') }}
+              onClick={() => {
+                handleProviderChange('api')
+              }}
               type="button"
             >
               Anthropic API
             </button>
             <button
               className={`${styles['providerOption']} ${provider === 'cli' ? styles['providerActive'] : ''}`}
-              onClick={() => { handleProviderChange('cli') }}
+              onClick={() => {
+                handleProviderChange('cli')
+              }}
               type="button"
             >
               Claude CLI
@@ -170,7 +189,9 @@ export function SettingsDialog(): ReactElement | null {
               className={styles['input']}
               disabled={loading}
               id="api-key-input"
-              onChange={(e) => { setApiKey(e.target.value) }}
+              onChange={(e) => {
+                setApiKey(e.target.value)
+              }}
               placeholder={hasKey && !apiKey ? '************' : 'sk-ant-...'}
               ref={inputRef}
               type="password"
@@ -193,7 +214,9 @@ export function SettingsDialog(): ReactElement | null {
               className={styles['input']}
               disabled={loading}
               id="cli-model-input"
-              onChange={(e) => { setLocalCliModel(e.target.value) }}
+              onChange={(e) => {
+                setLocalCliModel(e.target.value)
+              }}
               placeholder="Leave empty for CLI default"
               type="text"
               value={localCliModel}
@@ -211,12 +234,10 @@ export function SettingsDialog(): ReactElement | null {
         )}
 
         <div className={styles['field']}>
-          <label className={styles['label']}>
-            Excluded File Patterns
-          </label>
+          <label className={styles['label']}>Excluded File Patterns</label>
           <div className={styles['hint']}>
-            Files matching these patterns are excluded from AI narrative processing.
-            Matched against filename or path (e.g. &quot;.svg&quot;, &quot;generated/&quot;).
+            Files matching these patterns are excluded from AI narrative processing. Matched against
+            filename or path (e.g. &quot;.svg&quot;, &quot;generated/&quot;).
           </div>
           {excludedPatterns.length > 0 && (
             <div className={styles['patternList']}>
@@ -225,7 +246,9 @@ export function SettingsDialog(): ReactElement | null {
                   <span className={styles['patternText']}>{pattern}</span>
                   <button
                     className={styles['patternRemove']}
-                    onClick={() => { void handleRemovePattern(pattern) }}
+                    onClick={() => {
+                      void handleRemovePattern(pattern)
+                    }}
                     type="button"
                     aria-label={`Remove ${pattern}`}
                   >
@@ -239,7 +262,9 @@ export function SettingsDialog(): ReactElement | null {
             <input
               className={styles['input']}
               disabled={loading}
-              onChange={(e) => { setNewPattern(e.target.value) }}
+              onChange={(e) => {
+                setNewPattern(e.target.value)
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -254,7 +279,9 @@ export function SettingsDialog(): ReactElement | null {
             <button
               className={styles['addButton']}
               disabled={loading || !newPattern.trim()}
-              onClick={() => { void handleAddPattern() }}
+              onClick={() => {
+                void handleAddPattern()
+              }}
               type="button"
             >
               Add
@@ -267,7 +294,9 @@ export function SettingsDialog(): ReactElement | null {
             <button
               className={styles['clearButton']}
               disabled={loading}
-              onClick={() => { void handleClear() }}
+              onClick={() => {
+                void handleClear()
+              }}
               type="button"
             >
               Clear Key
@@ -284,7 +313,9 @@ export function SettingsDialog(): ReactElement | null {
           <button
             className={styles['saveButton']}
             disabled={loading || (provider === 'api' && !hasKey && !apiKey.trim())}
-            onClick={() => { void handleSave() }}
+            onClick={() => {
+              void handleSave()
+            }}
             type="button"
           >
             Save

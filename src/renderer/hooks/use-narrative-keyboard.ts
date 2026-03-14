@@ -78,6 +78,8 @@ export function useNarrativeKeyboard(): void {
     }
 
     document.addEventListener('keydown', handler)
-    return () => { document.removeEventListener('keydown', handler) }
+    return () => {
+      document.removeEventListener('keydown', handler)
+    }
   }, [dispatch, activeMode, review, chapters, activeIndex, activeId])
 }

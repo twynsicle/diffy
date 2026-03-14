@@ -59,7 +59,9 @@ export function CommitPanel(): ReactElement {
           type="text"
           placeholder="Commit message"
           value={message}
-          onChange={(e) => { setMessage(e.target.value) }}
+          onChange={(e) => {
+            setMessage(e.target.value)
+          }}
           onKeyDown={handleKeyDown}
           disabled={committing}
         />

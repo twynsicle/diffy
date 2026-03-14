@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { NarrativeReview, PrData } from '@shared/types'
+import type { NarrativeReview, NarrativeReviewCacheEntry, PrData } from '@shared/types'
 import { SUMMARY_SECTION_ID } from '@shared/types'
 
 import type { RootState } from '.'
@@ -8,10 +8,14 @@ import type { RootState } from '.'
 import {
   appendStreamText,
   clearPr,
+  hydrateCachedReview,
+  loadCachedNarrativeReview,
   clearReview,
   narrativeReducer,
   selectActiveChapterId,
   selectActiveChapterIndex,
+  selectCachedReview,
+  selectCachedReviewLoading,
   selectCancelling,
   selectChapterList,
   selectCurrentRequestId,
@@ -91,6 +95,8 @@ describe('narrativeReducer — sync actions', () => {
     expect(state.cancelling).toBe(false)
     expect(state.refreshingFiles).toBe(false)
     expect(state.currentRequestId).toBeNull()
+    expect(state.cachedReview).toBeNull()
+    expect(state.cachedReviewLoading).toBe(false)
   })
 
   it('setSource sets the source', () => {
@@ -126,6 +132,8 @@ describe('narrativeReducer — sync actions', () => {
       cancelling: false,
       refreshingFiles: false,
       currentRequestId: 'req-1',
+      cachedReview: makeCachedReviewEntry(),
+      cachedReviewLoading: true,
     }
     const state = narrativeReducer(dirty, clearPr())
     expect(state.source).toBeNull()
@@ -140,6 +148,8 @@ describe('narrativeReducer — sync actions', () => {
     expect(state.activeChapterId).toBeNull()
     expect(state.selectedFile).toBeNull()
     expect(state.currentRequestId).toBeNull()
+    expect(state.cachedReview).toBeNull()
+    expect(state.cachedReviewLoading).toBe(false)
   })
 
   it('appendStreamText accumulates text', () => {
@@ -218,6 +228,16 @@ describe('narrativeReducer — sync actions', () => {
     expect(state.selectedFile).toBeNull()
     expect(state.currentRequestId).toBeNull()
   })
+
+  it('hydrateCachedReview restores both prData and review', () => {
+    const entry = makeCachedReviewEntry()
+    const state = narrativeReducer(undefined, hydrateCachedReview(entry))
+    expect(state.prData).toEqual(entry.prData)
+    expect(state.review).toEqual(entry.review)
+    expect(state.generating).toBe(false)
+    expect(state.cancelling).toBe(false)
+    expect(state.activeChapterId).toBe('ch-1')
+  })
 })
 
 describe('narrativeReducer — async thunk actions', () => {
@@ -238,10 +258,17 @@ describe('narrativeReducer — async thunk actions', () => {
   })
 
   it('fetchPr.pending sets loading and clears error/data', () => {
-    const state = narrativeReducer(undefined, { type: 'narrative/fetchPr/pending' })
+    const before: NarrativeState = {
+      ...narrativeReducer(undefined, { type: '@@INIT' }),
+      cachedReview: makeCachedReviewEntry(),
+      cachedReviewLoading: true,
+    }
+    const state = narrativeReducer(before, { type: 'narrative/fetchPr/pending' })
     expect(state.prLoading).toBe(true)
     expect(state.prError).toBeNull()
     expect(state.prData).toBeNull()
+    expect(state.cachedReview).toBeNull()
+    expect(state.cachedReviewLoading).toBe(false)
   })
 
   it('fetchPr.fulfilled sets prData', () => {
@@ -283,10 +310,17 @@ describe('narrativeReducer — async thunk actions', () => {
   })
 
   it('fetchBranchDiff.pending sets loading', () => {
-    const state = narrativeReducer(undefined, { type: 'narrative/fetchBranchDiff/pending' })
+    const before: NarrativeState = {
+      ...narrativeReducer(undefined, { type: '@@INIT' }),
+      cachedReview: makeCachedReviewEntry(),
+      cachedReviewLoading: true,
+    }
+    const state = narrativeReducer(before, { type: 'narrative/fetchBranchDiff/pending' })
     expect(state.prLoading).toBe(true)
     expect(state.prError).toBeNull()
     expect(state.prData).toBeNull()
+    expect(state.cachedReview).toBeNull()
+    expect(state.cachedReviewLoading).toBe(false)
   })
 
   it('fetchBranchDiff.fulfilled sets prData', () => {
@@ -310,8 +344,15 @@ describe('narrativeReducer — async thunk actions', () => {
   })
 
   it('fetchUncommittedDiff.pending sets loading', () => {
-    const state = narrativeReducer(undefined, { type: 'narrative/fetchUncommittedDiff/pending' })
+    const before: NarrativeState = {
+      ...narrativeReducer(undefined, { type: '@@INIT' }),
+      cachedReview: makeCachedReviewEntry(),
+      cachedReviewLoading: true,
+    }
+    const state = narrativeReducer(before, { type: 'narrative/fetchUncommittedDiff/pending' })
     expect(state.prLoading).toBe(true)
+    expect(state.cachedReview).toBeNull()
+    expect(state.cachedReviewLoading).toBe(false)
   })
 
   it('fetchUncommittedDiff.fulfilled sets prData', () => {
@@ -431,6 +472,33 @@ describe('narrativeReducer — async thunk actions', () => {
     const state = narrativeReducer(before, { type: 'narrative/refreshNarrativeFiles/rejected' })
     expect(state.refreshingFiles).toBe(false)
   })
+
+  it('loadCachedNarrativeReview.pending sets cache loading state', () => {
+    const state = narrativeReducer(undefined, { type: loadCachedNarrativeReview.pending.type })
+    expect(state.cachedReviewLoading).toBe(true)
+    expect(state.cachedReview).toBeNull()
+  })
+
+  it('loadCachedNarrativeReview.fulfilled stores cached review', () => {
+    const entry = makeCachedReviewEntry()
+    const state = narrativeReducer(undefined, {
+      type: loadCachedNarrativeReview.fulfilled.type,
+      payload: entry,
+    })
+    expect(state.cachedReviewLoading).toBe(false)
+    expect(state.cachedReview).toEqual(entry)
+  })
+
+  it('loadCachedNarrativeReview.rejected clears cache loading state', () => {
+    const before: NarrativeState = {
+      ...narrativeReducer(undefined, { type: '@@INIT' }),
+      cachedReviewLoading: true,
+      cachedReview: makeCachedReviewEntry(),
+    }
+    const state = narrativeReducer(before, { type: loadCachedNarrativeReview.rejected.type })
+    expect(state.cachedReviewLoading).toBe(false)
+    expect(state.cachedReview).toBeNull()
+  })
 })
 
 describe('narrative selectors', () => {
@@ -452,6 +520,8 @@ describe('narrative selectors', () => {
         cancelling: false,
         refreshingFiles: false,
         currentRequestId: null,
+        cachedReview: null,
+        cachedReviewLoading: false,
         ...overrides,
       },
     }) as RootState
@@ -518,6 +588,15 @@ describe('narrative selectors', () => {
     expect(selectRefreshingFiles(makeState({ refreshingFiles: true }))).toBe(true)
   })
 
+  it('selectCachedReview', () => {
+    const entry = makeCachedReviewEntry()
+    expect(selectCachedReview(makeState({ cachedReview: entry }))).toEqual(entry)
+  })
+
+  it('selectCachedReviewLoading', () => {
+    expect(selectCachedReviewLoading(makeState({ cachedReviewLoading: true }))).toBe(true)
+  })
+
   it('selectNarrativeFileList returns files from prData', () => {
     const files = [{ filename: 'a.ts', status: 'modified', additions: 1, deletions: 0 }]
     expect(selectNarrativeFileList(makeState({ prData: makePrData({ files }) }))).toEqual(files)
@@ -561,3 +640,25 @@ describe('narrative selectors', () => {
     ).toBe(review.chapters.length)
   })
 })
+
+function makeCachedReviewEntry(): NarrativeReviewCacheEntry {
+  return {
+    source: 'branch-diff',
+    cachedAt: '2026-03-13T00:00:00.000Z',
+    prData: makePrData({
+      cacheMetadata: {
+        source: 'branch-diff',
+        branchName: 'feature/test',
+        headSha: 'abc123',
+        baseSha: 'def456',
+      },
+    }),
+    review: makeReview(),
+    cacheContext: {
+      source: 'branch-diff',
+      branchName: 'feature/test',
+      headSha: 'abc123',
+      baseSha: 'def456',
+    },
+  }
+}

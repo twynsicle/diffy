@@ -33,7 +33,9 @@ function extractHunksFromHunkIds(
   if (!Array.isArray(chunk['hunkIds'])) return []
 
   const filename = typeof chunk['filename'] === 'string' ? chunk['filename'] : ''
-  const hunkIds = (chunk['hunkIds'] as unknown[]).filter((id): id is string => typeof id === 'string')
+  const hunkIds = (chunk['hunkIds'] as unknown[]).filter(
+    (id): id is string => typeof id === 'string',
+  )
   const dedupedHunks = new Map<string, ResolvedDiffHunk>()
 
   for (const hunkId of hunkIds) {
@@ -62,7 +64,10 @@ function extractHunksFromHunkIds(
   return [...dedupedHunks.values()].sort((a, b) => a.fileOrder - b.fileOrder)
 }
 
-export function parseNarrativeReview(text: string, hunkIndex?: DiffHunkIndex): Result<NarrativeReview> {
+export function parseNarrativeReview(
+  text: string,
+  hunkIndex?: DiffHunkIndex,
+): Result<NarrativeReview> {
   const startTag = '<narrative_review>'
   const endTag = '</narrative_review>'
   const startIdx = text.indexOf(startTag)
@@ -118,7 +123,11 @@ export function parseNarrativeReview(text: string, hunkIndex?: DiffHunkIndex): R
       ch['insights'] = []
     }
     ch['insights'] = (ch['insights'] as unknown[]).filter(
-      (ins) => typeof ins === 'object' && ins !== null && typeof (ins as Record<string, unknown>)['type'] === 'string' && typeof (ins as Record<string, unknown>)['text'] === 'string',
+      (ins) =>
+        typeof ins === 'object' &&
+        ins !== null &&
+        typeof (ins as Record<string, unknown>)['type'] === 'string' &&
+        typeof (ins as Record<string, unknown>)['text'] === 'string',
     )
 
     // Ensure diffChunks is an array and filter invalid entries
@@ -186,12 +195,18 @@ async function doStreamRequest(
   }, TIMEOUT_MS)
 
   if (externalSignal) {
-    const onAbort = (): void => { controller.abort() }
+    const onAbort = (): void => {
+      controller.abort()
+    }
     externalSignal.addEventListener('abort', onAbort, { once: true })
     // Clean up if we finish before external abort
-    controller.signal.addEventListener('abort', () => {
-      externalSignal.removeEventListener('abort', onAbort)
-    }, { once: true })
+    controller.signal.addEventListener(
+      'abort',
+      () => {
+        externalSignal.removeEventListener('abort', onAbort)
+      },
+      { once: true },
+    )
   }
 
   let response: Response
@@ -313,7 +328,9 @@ export async function generateNarrative(
         return { ok: false, error: 'Generation cancelled' }
       }
       onChunk(`\n[API busy — retrying in ${String(s)}s...]\n`)
-      await new Promise((resolve) => { setTimeout(resolve, 1000) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000)
+      })
     }
     streamResult = await doStreamRequest(system, user, apiKey, onChunk, externalSignal)
     if (streamResult.error === '529') {
@@ -322,7 +339,12 @@ export async function generateNarrative(
   }
 
   if (streamResult.error) {
-    return { ok: false, error: streamResult.error, wasTruncated, rawText: streamResult.accumulated || undefined }
+    return {
+      ok: false,
+      error: streamResult.error,
+      wasTruncated,
+      rawText: streamResult.accumulated || undefined,
+    }
   }
 
   const parseResult = parseNarrativeReview(streamResult.accumulated, hunkIndex)

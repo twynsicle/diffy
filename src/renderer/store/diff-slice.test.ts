@@ -128,10 +128,12 @@ describe('diffReducer', () => {
       isBinary: false,
       currentRequestId: 'req-1',
     }
-    const state = diffReducer(
-      pending,
-      { type: 'diff/loadDiff/rejected', payload: 'File not found', meta: { requestId: 'req-1', arg: {} }, error: {} },
-    )
+    const state = diffReducer(pending, {
+      type: 'diff/loadDiff/rejected',
+      payload: 'File not found',
+      meta: { requestId: 'req-1', arg: {} },
+      error: {},
+    })
     expect(state.loading).toBe(false)
     expect(state.error).toBe('File not found')
   })
@@ -146,10 +148,12 @@ describe('diffReducer', () => {
       isBinary: false,
       currentRequestId: 'req-1',
     }
-    const state = diffReducer(
-      pending,
-      { type: 'diff/loadDiff/rejected', payload: 'err', meta: { requestId: 'req-2', arg: {} }, error: {} },
-    )
+    const state = diffReducer(pending, {
+      type: 'diff/loadDiff/rejected',
+      payload: 'err',
+      meta: { requestId: 'req-2', arg: {} },
+      error: {},
+    })
     expect(state.loading).toBe(true)
     expect(state.error).toBeUndefined()
   })
@@ -164,10 +168,12 @@ describe('diffReducer', () => {
       isBinary: false,
       currentRequestId: 'req-1',
     }
-    const state = diffReducer(
-      pending,
-      { type: 'diff/loadDiff/rejected', payload: undefined, meta: { requestId: 'req-1', arg: {} }, error: {} },
-    )
+    const state = diffReducer(pending, {
+      type: 'diff/loadDiff/rejected',
+      payload: undefined,
+      meta: { requestId: 'req-1', arg: {} },
+      error: {},
+    })
     expect(state.error).toBe('Failed to load diff')
   })
 })

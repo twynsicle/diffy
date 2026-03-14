@@ -8,13 +8,12 @@ import { useAppSelector } from '../../hooks/use-app-selector'
 import { useRepoActions } from '../../hooks/use-repo-actions'
 import { useResizablePanel } from '../../hooks/use-resizable-panel'
 import { useSplitPane } from '../../hooks/use-split-pane'
+import { selectFile, selectSelected, selectStaged, selectUnstaged } from '../../store/changes-slice'
 import {
-  selectFile,
-  selectSelected,
-  selectStaged,
-  selectUnstaged,
-} from '../../store/changes-slice'
-import { loadCommitPanelVisible, selectCommitPanelVisible, showConfirmModal } from '../../store/ui-slice'
+  loadCommitPanelVisible,
+  selectCommitPanelVisible,
+  showConfirmModal,
+} from '../../store/ui-slice'
 import { buildFileTree, collectAllFolderPaths } from '../../utils/file-tree'
 
 import { CommitPanel } from './CommitPanel'
@@ -89,12 +88,8 @@ export function SidePane(): ReactElement {
   const unstaged = useAppSelector(selectUnstaged)
   const selected = useAppSelector(selectSelected)
   const commitPanelVisible = useAppSelector(selectCommitPanelVisible)
-  const {
-    stageAndRefresh,
-    unstageAndRefresh,
-    stageAllAndRefresh,
-    unstageAllAndRefresh,
-  } = useRepoActions()
+  const { stageAndRefresh, unstageAndRefresh, stageAllAndRefresh, unstageAllAndRefresh } =
+    useRepoActions()
 
   useEffect(() => {
     void dispatch(loadCommitPanelVisible())
@@ -127,10 +122,7 @@ export function SidePane(): ReactElement {
     () => unstagedTree.some((n) => n.kind === 'folder'),
     [unstagedTree],
   )
-  const stagedHasFolders = useMemo(
-    () => stagedTree.some((n) => n.kind === 'folder'),
-    [stagedTree],
-  )
+  const stagedHasFolders = useMemo(() => stagedTree.some((n) => n.kind === 'folder'), [stagedTree])
 
   const handleSelect = useCallback(
     (path: string, section: Section, origPath?: string) => {
@@ -147,19 +139,13 @@ export function SidePane(): ReactElement {
   const handleUnstageFolderFiles = unstageAndRefresh
 
   // Tree folder toggle
-  const handleToggleUnstagedFolder = useCallback(
-    (folderPath: string) => {
-      uiDispatch({ type: 'TOGGLE_FOLDER', section: 'unstaged', folderPath })
-    },
-    [],
-  )
+  const handleToggleUnstagedFolder = useCallback((folderPath: string) => {
+    uiDispatch({ type: 'TOGGLE_FOLDER', section: 'unstaged', folderPath })
+  }, [])
 
-  const handleToggleStagedFolder = useCallback(
-    (folderPath: string) => {
-      uiDispatch({ type: 'TOGGLE_FOLDER', section: 'staged', folderPath })
-    },
-    [],
-  )
+  const handleToggleStagedFolder = useCallback((folderPath: string) => {
+    uiDispatch({ type: 'TOGGLE_FOLDER', section: 'staged', folderPath })
+  }, [])
 
   // Toggle all folders (collapse all / expand all)
   const unstagedHasCollapsedFolders = uiState.unstagedCollapsedFolders.size > 0
@@ -192,12 +178,9 @@ export function SidePane(): ReactElement {
     uiDispatch({ type: 'TOGGLE_SECTION', section: 'staged' })
   }, [])
 
-  const handleContextMenu = useCallback(
-    (file: FileChange, x: number, y: number) => {
-      setContextMenu({ file, x, y })
-    },
-    [],
-  )
+  const handleContextMenu = useCallback((file: FileChange, x: number, y: number) => {
+    setContextMenu({ file, x, y })
+  }, [])
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null)
@@ -282,9 +265,7 @@ export function SidePane(): ReactElement {
           />
         )}
       </div>
-      {!bothCollapsed && (
-        <div className={styles.splitHandle} onMouseDown={handleSplitResize} />
-      )}
+      {!bothCollapsed && <div className={styles.splitHandle} onMouseDown={handleSplitResize} />}
       <div className={styles.section} style={stagedStyle}>
         <SectionHeader
           label="Staged"

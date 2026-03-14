@@ -26,16 +26,16 @@ export function GeneratingOverlay(): ReactElement {
     const interval = setInterval(() => {
       setElapsed(Date.now() - start)
     }, 500)
-    return () => { clearInterval(interval) }
+    return () => {
+      clearInterval(interval)
+    }
   }, [])
 
   const handleCancel = (): void => {
     void dispatch(cancelGeneration())
   }
 
-  const progress = estimate && estimate > 0
-    ? Math.min(elapsed / estimate, 0.95)
-    : null
+  const progress = estimate && estimate > 0 ? Math.min(elapsed / estimate, 0.95) : null
 
   return (
     <div className={styles.overlay}>
@@ -51,7 +51,9 @@ export function GeneratingOverlay(): ReactElement {
           <div className={styles.progressTrack}>
             <div
               className={progress !== null ? styles.progressBar : styles.progressBarIndeterminate}
-              style={progress !== null ? { width: `${String(Math.round(progress * 100))}%` } : undefined}
+              style={
+                progress !== null ? { width: `${String(Math.round(progress * 100))}%` } : undefined
+              }
             />
           </div>
           <div className={styles.timeInfo}>

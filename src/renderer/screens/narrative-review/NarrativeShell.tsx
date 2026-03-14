@@ -1,10 +1,22 @@
-import { type ReactElement, useCallback, useEffect, useState } from 'react'
+import { type ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
+
+import { parsePrUrl } from '@shared/parse-pr-url'
+import type {
+  NarrativeCacheContext,
+  NarrativeCacheLookup,
+  NarrativeGenerationRequest,
+} from '@shared/types'
 
 import { useAppDispatch } from '../../hooks/use-app-dispatch'
 import { useAppSelector } from '../../hooks/use-app-selector'
 import {
   clearPr,
+  clearCachedReview,
   clearReview,
+  hydrateCachedReview,
+  loadCachedNarrativeReview,
+  selectCachedReview,
+  selectCachedReviewLoading,
   selectCurrentRequestId,
   selectGenerateError,
   selectGenerating,
@@ -13,6 +25,7 @@ import {
   selectPrData,
   selectPrError,
   selectPrLoading,
+  selectPrUrl,
   selectReview,
   selectSelectedNarrativeFile,
   selectStreamText,
@@ -42,12 +55,15 @@ export function NarrativeShell(): ReactElement {
   const dispatch = useAppDispatch()
   const source = useAppSelector(selectNarrativeSource)
   const prData = useAppSelector(selectPrData)
+  const prUrl = useAppSelector(selectPrUrl)
   const prLoading = useAppSelector(selectPrLoading)
   const prError = useAppSelector(selectPrError)
   const generating = useAppSelector(selectGenerating)
   const currentRequestId = useAppSelector(selectCurrentRequestId)
   const generateError = useAppSelector(selectGenerateError)
   const review = useAppSelector(selectReview)
+  const cachedReview = useAppSelector(selectCachedReview)
+  const cachedReviewLoading = useAppSelector(selectCachedReviewLoading)
   const streamText = useAppSelector(selectStreamText)
   const selectedFile = useAppSelector(selectSelectedNarrativeFile)
   const settingsLoaded = useAppSelector(selectSettingsLoaded)
@@ -69,11 +85,95 @@ export function NarrativeShell(): ReactElement {
     if (generating && !currentRequestId) {
       dispatch(setGenerateError('Generation was interrupted. Please try again.'))
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const prRef = useMemo(() => (source === 'github-pr' ? parsePrUrl(prUrl) : null), [source, prUrl])
+
+  const cacheLookup = useMemo<NarrativeCacheLookup | null>(() => {
+    if (!source || !prData) return null
+
+    if (source === 'github-pr') {
+      const ref = prRef
+      return ref ? { source, prRef: ref, cacheContext: { source } } : null
+    }
+
+    if (source === 'branch-diff' && prData.cacheMetadata?.source === 'branch-diff') {
+      return {
+        source,
+        cacheContext: prData.cacheMetadata,
+      }
+    }
+
+    if (source === 'uncommitted' && prData.cacheMetadata?.source === 'uncommitted') {
+      return {
+        source,
+        cacheContext: prData.cacheMetadata,
+      }
+    }
+
+    return null
+  }, [source, prData, prRef])
+
+  const generationRequest = useMemo<NarrativeGenerationRequest | null>(() => {
+    if (!source || !prData) return null
+
+    let cacheContext: NarrativeCacheContext | null = null
+    let currentPrRef: typeof prRef | undefined
+
+    if (source === 'github-pr') {
+      const ref = prRef
+      if (!ref) return null
+      currentPrRef = ref
+      cacheContext = { source }
+    } else if (source === 'branch-diff' && prData.cacheMetadata?.source === 'branch-diff') {
+      cacheContext = prData.cacheMetadata
+    } else if (source === 'uncommitted' && prData.cacheMetadata?.source === 'uncommitted') {
+      cacheContext = prData.cacheMetadata
+    }
+
+    if (!cacheContext) return null
+
+    return {
+      source,
+      prData,
+      prRef: currentPrRef,
+      cacheContext,
+    }
+  }, [source, prData, prRef])
+
+  const generationUnavailableReason = useMemo<string | null>(() => {
+    if (!source || !prData || generationRequest) {
+      return null
+    }
+
+    if (source === 'github-pr') {
+      return 'Cannot generate review because the current PR URL could not be parsed.'
+    }
+
+    if (source === 'branch-diff') {
+      return 'Cannot generate review because branch cache metadata is missing from the current diff.'
+    }
+
+    return 'Cannot generate review because uncommitted diff metadata is missing from the current diff.'
+  }, [source, prData, generationRequest])
+
+  useEffect(() => {
+    if (!cacheLookup || review) {
+      dispatch(clearCachedReview())
+      return
+    }
+
+    void dispatch(loadCachedNarrativeReview(cacheLookup))
+  }, [cacheLookup, review, dispatch])
+
   const handleGenerate = useCallback(() => {
-    if (!prData) return
+    if (!generationRequest) {
+      if (generationUnavailableReason) {
+        dispatch(setGenerateError(generationUnavailableReason))
+      }
+      return
+    }
 
     if (aiProvider === 'api') {
       if (!hasApiKey) {
@@ -82,19 +182,36 @@ export function NarrativeShell(): ReactElement {
       }
     } else {
       if (!cliInstalled) {
-        dispatch(addToast({ message: 'Claude CLI not found. Install Claude Code and try again.', variant: 'error' }))
+        dispatch(
+          addToast({
+            message: 'Claude CLI not found. Install Claude Code and try again.',
+            variant: 'error',
+          }),
+        )
         return
       }
     }
 
-    void dispatch(startNarrativeGeneration(prData))
-  }, [dispatch, prData, aiProvider, hasApiKey, cliInstalled])
+    void dispatch(startNarrativeGeneration(generationRequest))
+  }, [
+    dispatch,
+    generationRequest,
+    generationUnavailableReason,
+    aiProvider,
+    hasApiKey,
+    cliInstalled,
+  ])
 
   const handleRegenerate = useCallback(() => {
-    if (!prData) return
+    if (!generationRequest) {
+      if (generationUnavailableReason) {
+        dispatch(setGenerateError(generationUnavailableReason))
+      }
+      return
+    }
     dispatch(clearReview())
-    void dispatch(startNarrativeGeneration(prData))
-  }, [dispatch, prData])
+    void dispatch(startNarrativeGeneration(generationRequest))
+  }, [dispatch, generationRequest, generationUnavailableReason])
 
   const handleBack = useCallback(() => {
     dispatch(clearPr())
@@ -106,10 +223,20 @@ export function NarrativeShell(): ReactElement {
   }, [dispatch])
 
   const handleRetry = useCallback(() => {
-    if (!prData) return
+    if (!generationRequest) {
+      if (generationUnavailableReason) {
+        dispatch(setGenerateError(generationUnavailableReason))
+      }
+      return
+    }
     dispatch(clearReview())
-    void dispatch(startNarrativeGeneration(prData))
-  }, [dispatch, prData])
+    void dispatch(startNarrativeGeneration(generationRequest))
+  }, [dispatch, generationRequest, generationUnavailableReason])
+
+  const handleLoadCachedReview = useCallback(() => {
+    if (!cachedReview) return
+    dispatch(hydrateCachedReview(cachedReview))
+  }, [dispatch, cachedReview])
 
   const isParseError = generateError
     ? generateError.includes('parse') || generateError.includes('tags')
@@ -197,9 +324,20 @@ export function NarrativeShell(): ReactElement {
             <button className={styles.cancelBtn} onClick={handleBack} type="button">
               Back
             </button>
-            <button className={styles.generateBtn} onClick={handleGenerate} type="button">
-              Generate Review
-            </button>
+            {cachedReview && !cachedReviewLoading ? (
+              <>
+                <button className={styles.cancelBtn} onClick={handleLoadCachedReview} type="button">
+                  Load last review
+                </button>
+                <button className={styles.generateBtn} onClick={handleGenerate} type="button">
+                  Generate New Review
+                </button>
+              </>
+            ) : (
+              <button className={styles.generateBtn} onClick={handleGenerate} type="button">
+                Generate Review
+              </button>
+            )}
           </div>
         )}
 
@@ -222,7 +360,12 @@ export function NarrativeShell(): ReactElement {
                 Retry
               </button>
               {isParseError && streamText && (
-                <button className={styles.rawBtn} onClick={() => { setShowRaw(true) }}>
+                <button
+                  className={styles.rawBtn}
+                  onClick={() => {
+                    setShowRaw(true)
+                  }}
+                >
                   View Raw Response
                 </button>
               )}
@@ -230,7 +373,14 @@ export function NarrativeShell(): ReactElement {
           </div>
         )}
 
-        {showRaw && <RawResponseModal text={streamText} onClose={() => { setShowRaw(false) }} />}
+        {showRaw && (
+          <RawResponseModal
+            text={streamText}
+            onClose={() => {
+              setShowRaw(false)
+            }}
+          />
+        )}
       </div>
     </div>
   )

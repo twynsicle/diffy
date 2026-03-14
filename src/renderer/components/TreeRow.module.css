@@ -108,7 +108,9 @@
   padding: 1px var(--spacing-xs);
   margin-left: var(--spacing-xs);
   flex-shrink: 0;
-  transition: opacity 0.1s, color 0.1s;
+  transition:
+    opacity 0.1s,
+    color 0.1s;
 }
 
 .row:hover .action {
@@ -126,7 +128,9 @@
   height: 26px;
   padding: 0 var(--spacing-md);
   border-left: 3px solid transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .compact:hover {

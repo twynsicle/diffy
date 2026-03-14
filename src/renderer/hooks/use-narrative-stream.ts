@@ -61,7 +61,12 @@ export function useNarrativeStream(): void {
 
     const unsubTruncation = window.api.onNarrativeTruncationWarning((requestId) => {
       if (requestIdRef.current !== null && requestId !== requestIdRef.current) return
-      dispatch(addToast({ message: 'Large PR — some file diffs were truncated for the AI', variant: 'info' }))
+      dispatch(
+        addToast({
+          message: 'Large PR — some file diffs were truncated for the AI',
+          variant: 'info',
+        }),
+      )
     })
 
     return () => {
