@@ -18,7 +18,6 @@ type PersistedState = {
   excludedFilePatterns?: string[]
   aiProvider?: AiProvider
   cliModel?: string
-  commitPanelVisible?: boolean
   narrativeReviewCache?: Record<string, NarrativeReviewCacheEntry>
 }
 
@@ -81,14 +80,6 @@ export function getCliModel(): string {
 
 export function setCliModel(model: string): void {
   write({ ...read(), cliModel: model })
-}
-
-export function getCommitPanelVisible(): boolean {
-  return read().commitPanelVisible ?? true
-}
-
-export function setCommitPanelVisible(visible: boolean): void {
-  write({ ...read(), commitPanelVisible: visible })
 }
 
 function makeGithubPrCacheKey(ref: PrReference): string {

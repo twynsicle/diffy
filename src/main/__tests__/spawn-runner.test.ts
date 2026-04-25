@@ -103,6 +103,19 @@ describe('spawnRunner', () => {
     expect(chunks.join('').trim()).toBe('streamed')
   })
 
+  it('resets the timeout when output continues arriving', async () => {
+    const result = await spawnRunner({
+      command: 'sh',
+      args: ['-c', 'printf tick; sleep 0.07; printf tick; sleep 0.07; printf tick'],
+      timeoutMs: 100,
+      resetTimeoutOnOutput: true,
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.data.exitCode).toBe(0)
+    expect(result.data.stdout).toContain('tickticktick')
+  })
+
   it('aborts via AbortSignal', async () => {
     const controller = new AbortController()
     // Abort after a short delay

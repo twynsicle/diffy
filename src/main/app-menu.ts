@@ -2,26 +2,11 @@ import { BrowserWindow, Menu, app } from 'electron'
 
 import { IPC_CHANNELS } from '@shared/ipc'
 
-import { getCommitPanelVisible, setCommitPanelVisible } from './persisted-state'
-
 export function buildAppMenu(): Menu {
-  const viewSubmenu: Electron.MenuItemConstructorOptions[] = [
-    {
-      label: 'Show Commit Panel',
-      type: 'checkbox',
-      checked: getCommitPanelVisible(),
-      click: (menuItem): void => {
-        const visible = menuItem.checked
-        setCommitPanelVisible(visible)
-        const win = BrowserWindow.getFocusedWindow()
-        win?.webContents.send(IPC_CHANNELS.SHORTCUT_TOGGLE_COMMIT_PANEL)
-      },
-    },
-  ]
+  const viewSubmenu: Electron.MenuItemConstructorOptions[] = []
 
   if (!app.isPackaged) {
     viewSubmenu.push(
-      { type: 'separator' },
       { role: 'toggleDevTools' },
       { role: 'reload' },
       { role: 'forceReload' },
@@ -60,14 +45,6 @@ export function buildAppMenu(): Menu {
             win?.webContents.send(IPC_CHANNELS.SHORTCUT_OPEN_REPO)
           },
         },
-        {
-          label: 'Refresh',
-          accelerator: 'CmdOrCtrl+R',
-          click: (): void => {
-            const win = BrowserWindow.getFocusedWindow()
-            win?.webContents.send(IPC_CHANNELS.SHORTCUT_REFRESH)
-          },
-        },
       ],
     },
     {
@@ -82,10 +59,9 @@ export function buildAppMenu(): Menu {
         { role: 'selectAll' },
       ],
     },
-    {
-      label: 'View',
-      submenu: viewSubmenu,
-    },
+    ...(viewSubmenu.length > 0
+      ? [{ label: 'View', submenu: viewSubmenu }]
+      : []),
     {
       label: 'Window',
       submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }],

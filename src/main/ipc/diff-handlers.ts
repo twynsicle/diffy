@@ -240,4 +240,23 @@ export function registerDiffHandlers(): void {
     }
     return buildUncommittedDiff(currentRepoRoot)
   })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_GET_BRANCH, async (): Promise<Result<string>> => {
+    const currentRepoRoot = getCurrentRepoRoot()
+    if (!currentRepoRoot) {
+      return { ok: false, error: 'No repository open' }
+    }
+    return runGit({ repoRoot: currentRepoRoot, args: ['branch', '--show-current'] }).then((r) =>
+      r.ok ? { ok: true, data: r.data.trim() } : r,
+    )
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_FETCH_ORIGIN, async (): Promise<Result<void>> => {
+    const currentRepoRoot = getCurrentRepoRoot()
+    if (!currentRepoRoot) {
+      return { ok: false, error: 'No repository open' }
+    }
+    const result = await runGit({ repoRoot: currentRepoRoot, args: ['fetch', 'origin'] })
+    return result.ok ? { ok: true, data: undefined } : result
+  })
 }

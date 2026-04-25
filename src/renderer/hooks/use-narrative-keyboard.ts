@@ -4,7 +4,6 @@ import { SUMMARY_SECTION_ID } from '@shared/types'
 
 import { useAppDispatch } from './use-app-dispatch'
 import { useAppSelector } from './use-app-selector'
-import { selectActiveMode } from '../store/mode-slice'
 import {
   selectActiveChapterId,
   selectActiveChapterIndex,
@@ -15,14 +14,13 @@ import {
 
 export function useNarrativeKeyboard(): void {
   const dispatch = useAppDispatch()
-  const activeMode = useAppSelector(selectActiveMode)
   const review = useAppSelector(selectReview)
   const chapters = useAppSelector(selectChapterList)
   const activeIndex = useAppSelector(selectActiveChapterIndex)
   const activeId = useAppSelector(selectActiveChapterId)
 
   useEffect(() => {
-    if (activeMode !== 'narrative-review' || !review) return
+    if (!review) return
 
     const isSummary = activeId === SUMMARY_SECTION_ID
 
@@ -81,5 +79,5 @@ export function useNarrativeKeyboard(): void {
     return () => {
       document.removeEventListener('keydown', handler)
     }
-  }, [dispatch, activeMode, review, chapters, activeIndex, activeId])
+  }, [dispatch, review, chapters, activeIndex, activeId])
 }

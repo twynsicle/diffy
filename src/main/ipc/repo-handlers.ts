@@ -5,7 +5,6 @@ import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { IPC_CHANNELS } from '@shared/ipc'
 import type { Result } from '@shared/types'
 
-import { startWatching } from '../file-watcher'
 import { getRepoRoot } from '../git-runner'
 import { getLastRepoPath, setLastRepoPath } from '../persisted-state'
 import { setCurrentRepoRoot } from '../repo-state'
@@ -33,7 +32,6 @@ export function registerRepoHandlers(mainWindow: BrowserWindow): void {
 
     const currentRepoRoot = rootResult.data
     setCurrentRepoRoot(currentRepoRoot)
-    startWatching(currentRepoRoot, mainWindow)
     setLastRepoPath(currentRepoRoot)
 
     return {

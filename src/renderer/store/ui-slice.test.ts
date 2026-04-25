@@ -4,14 +4,11 @@ import type { RootState } from '.'
 
 import {
   addToast,
-  closeConfirmModal,
   closeSettings,
   dismissToast,
   openSettings,
-  selectConfirmModal,
   selectSettingsOpen,
   selectToasts,
-  showConfirmModal,
   uiReducer,
 } from './ui-slice'
 
@@ -19,7 +16,6 @@ describe('uiReducer', () => {
   it('has correct initial state', () => {
     const state = uiReducer(undefined, { type: '@@INIT' })
     expect(state.toasts).toEqual([])
-    expect(state.confirmModal.open).toBe(false)
     expect(state.settingsOpen).toBe(false)
   })
 
@@ -47,36 +43,6 @@ describe('uiReducer', () => {
     expect(state2.toasts).toHaveLength(1)
   })
 
-  it('showConfirmModal opens the modal with details', () => {
-    const state = uiReducer(
-      undefined,
-      showConfirmModal({
-        title: 'Confirm Delete',
-        message: 'Are you sure?',
-        onConfirmAction: { type: 'delete', path: 'file.ts' },
-      }),
-    )
-    expect(state.confirmModal.open).toBe(true)
-    expect(state.confirmModal.title).toBe('Confirm Delete')
-    expect(state.confirmModal.message).toBe('Are you sure?')
-    expect(state.confirmModal.onConfirmAction).toEqual({ type: 'delete', path: 'file.ts' })
-  })
-
-  it('closeConfirmModal resets the modal', () => {
-    const state1 = uiReducer(
-      undefined,
-      showConfirmModal({
-        title: 'Title',
-        message: 'Msg',
-        onConfirmAction: { type: 'discard', path: 'a.ts' },
-      }),
-    )
-    const state2 = uiReducer(state1, closeConfirmModal())
-    expect(state2.confirmModal.open).toBe(false)
-    expect(state2.confirmModal.title).toBe('')
-    expect(state2.confirmModal.message).toBe('')
-  })
-
   it('openSettings sets settingsOpen to true', () => {
     const state = uiReducer(undefined, openSettings())
     expect(state.settingsOpen).toBe(true)
@@ -94,22 +60,15 @@ describe('ui selectors', () => {
     const state = {
       ui: {
         toasts: [{ id: '1', message: 'hi', variant: 'info' as const }],
-        confirmModal: { open: false, title: '', message: '' },
         settingsOpen: false,
       },
     } as RootState
     expect(selectToasts(state)).toHaveLength(1)
   })
 
-  it('selectConfirmModal returns the confirm modal state', () => {
-    const modal = { open: true, title: 'T', message: 'M' }
-    const state = { ui: { toasts: [], confirmModal: modal, settingsOpen: false } } as RootState
-    expect(selectConfirmModal(state)).toEqual(modal)
-  })
-
   it('selectSettingsOpen returns the settings open flag', () => {
     const state = {
-      ui: { toasts: [], confirmModal: { open: false, title: '', message: '' }, settingsOpen: true },
+      ui: { toasts: [], settingsOpen: true },
     } as RootState
     expect(selectSettingsOpen(state)).toBe(true)
   })

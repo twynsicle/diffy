@@ -187,7 +187,7 @@ When in narrative mode with a review loaded, these keys navigate chapters:
 
 - **Invocation**: Uses `spawnRunner` with `claude -p --system-prompt ... --tools ""` and user prompt piped via stdin
 - **Model**: Optional custom model via `--model` flag (from settings)
-- **Timeout**: 3 minutes
+- **Timeout**: 3 minutes of output inactivity (resets while stdout/stderr continue streaming)
 - **Streaming**: stdout `data` events → chunks
 - **Output parsing**: Same `parseNarrativeReview()` parser as API client
 

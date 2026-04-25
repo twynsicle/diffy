@@ -14,11 +14,6 @@ export type FileChange = {
   section: Section
 }
 
-export type RepoStatus = {
-  staged: FileChange[]
-  unstaged: FileChange[]
-}
-
 export type DiffRequest = {
   path: string
   section: Section
@@ -51,8 +46,6 @@ export type FileAtRefResult = {
 }
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string }
-
-export type AppMode = 'workspace' | 'narrative-review'
 
 export type NarrativeSource = 'github-pr' | 'branch-diff' | 'uncommitted'
 

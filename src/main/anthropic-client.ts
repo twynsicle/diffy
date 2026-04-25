@@ -182,13 +182,74 @@ export function parseNarrativeReview(
 
 export type NarrativeResult = Result<NarrativeReview> & { wasTruncated?: boolean; rawText?: string }
 
+type StreamRequestResult = {
+  accumulated: string
+  error?: string
+  stopReason?: string
+}
+
+function processStreamEventLine(
+  line: string,
+  state: { accumulated: string; stopReason?: string },
+  onChunk: (text: string) => void,
+): void {
+  const normalizedLine = line.endsWith('\r') ? line.slice(0, -1) : line
+
+  if (!normalizedLine.startsWith('data: ')) return
+
+  const data = normalizedLine.slice(6)
+  if (data === '[DONE]') return
+
+  let event: unknown
+  try {
+    event = JSON.parse(data)
+  } catch {
+    return
+  }
+
+  if (typeof event !== 'object' || event === null || typeof (event as { type?: unknown }).type !== 'string') {
+    return
+  }
+
+  if ((event as { type: string }).type === 'content_block_delta') {
+    const text = (event as { delta?: { text?: string } }).delta?.text
+    if (text !== undefined) {
+      state.accumulated += text
+      onChunk(text)
+    }
+    return
+  }
+
+  if ((event as { type: string }).type === 'message_delta') {
+    const stopReason = (event as { delta?: { stop_reason?: unknown } }).delta?.stop_reason
+    if (typeof stopReason === 'string') {
+      state.stopReason = stopReason
+    }
+  }
+}
+
+function processStreamBuffer(
+  buffer: string,
+  state: { accumulated: string; stopReason?: string },
+  onChunk: (text: string) => void,
+): string {
+  const lines = buffer.split('\n')
+  const trailingLine = lines.pop() ?? ''
+
+  for (const line of lines) {
+    processStreamEventLine(line, state, onChunk)
+  }
+
+  return trailingLine
+}
+
 async function doStreamRequest(
   system: string,
   user: string,
   apiKey: string,
   onChunk: (text: string) => void,
   externalSignal?: AbortSignal,
-): Promise<{ accumulated: string; error?: string }> {
+): Promise<StreamRequestResult> {
   const controller = new AbortController()
   const timeout = setTimeout(() => {
     controller.abort()
@@ -254,7 +315,7 @@ async function doStreamRequest(
     return { accumulated: '', error: 'Response body is empty' }
   }
 
-  let accumulated = ''
+  const streamState: { accumulated: string; stopReason?: string } = { accumulated: '' }
   let lineBuffer = ''
   const reader = body.getReader()
   const decoder = new TextDecoder()
@@ -265,48 +326,28 @@ async function doStreamRequest(
       if (done) break
 
       lineBuffer += decoder.decode(value, { stream: true })
-      const lines = lineBuffer.split('\n')
-      lineBuffer = lines.pop() ?? ''
+      lineBuffer = processStreamBuffer(lineBuffer, streamState, onChunk)
+    }
 
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        const data = line.slice(6)
-        if (data === '[DONE]') continue
-
-        let event: unknown
-        try {
-          event = JSON.parse(data)
-        } catch {
-          continue
-        }
-
-        if (
-          typeof event === 'object' &&
-          event !== null &&
-          (event as { type: string }).type === 'content_block_delta'
-        ) {
-          const text = (event as { delta?: { text?: string } }).delta?.text
-          if (text !== undefined) {
-            accumulated += text
-            onChunk(text)
-          }
-        }
-      }
+    lineBuffer += decoder.decode()
+    lineBuffer = processStreamBuffer(lineBuffer, streamState, onChunk)
+    if (lineBuffer.length > 0) {
+      processStreamEventLine(lineBuffer, streamState, onChunk)
     }
   } catch (err) {
     clearTimeout(timeout)
     if (err instanceof Error && err.name === 'AbortError') {
       if (externalSignal?.aborted) {
-        return { accumulated, error: 'Generation cancelled' }
+        return { accumulated: streamState.accumulated, error: 'Generation cancelled' }
       }
-      return { accumulated, error: 'Request timed out after 2 minutes' }
+      return { accumulated: streamState.accumulated, error: 'Request timed out after 2 minutes' }
     }
     const msg = err instanceof Error ? err.message : 'Stream read error'
-    return { accumulated, error: `Error reading response stream: ${msg}` }
+    return { accumulated: streamState.accumulated, error: `Error reading response stream: ${msg}` }
   }
 
   clearTimeout(timeout)
-  return { accumulated }
+  return { accumulated: streamState.accumulated, stopReason: streamState.stopReason }
 }
 
 export async function generateNarrative(
@@ -350,6 +391,15 @@ export async function generateNarrative(
   const parseResult = parseNarrativeReview(streamResult.accumulated, hunkIndex)
 
   if (!parseResult.ok) {
+    if (streamResult.stopReason === 'max_tokens') {
+      return {
+        ok: false,
+        error:
+          'Narrative generation hit the model output limit before finishing. The response was cut off before the closing </narrative_review> tag.',
+        wasTruncated,
+        rawText: streamResult.accumulated,
+      }
+    }
     return { ...parseResult, wasTruncated, rawText: streamResult.accumulated }
   }
 

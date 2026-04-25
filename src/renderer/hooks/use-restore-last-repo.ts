@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 
-import { useAppDispatch } from './use-app-dispatch'
-import { refreshStatus } from '../store/changes-slice'
 import { fetchBranch, openRepo } from '../store/repo-slice'
+
+import { useAppDispatch } from './use-app-dispatch'
 
 export function useRestoreLastRepo(): void {
   const dispatch = useAppDispatch()
@@ -13,7 +13,6 @@ export function useRestoreLastRepo(): void {
       if (lastPath) {
         const result = await dispatch(openRepo(lastPath))
         if (openRepo.fulfilled.match(result)) {
-          void dispatch(refreshStatus())
           void dispatch(fetchBranch())
         }
       }

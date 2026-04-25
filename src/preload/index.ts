@@ -16,24 +16,8 @@ const api: DiffyApi = {
   getLastRepo: () => ipcRenderer.invoke(IPC_CHANNELS.REPO_GET_LAST),
   selectFolder: () => ipcRenderer.invoke(IPC_CHANNELS.REPO_SELECT_FOLDER),
   openRepo: (folderPath) => ipcRenderer.invoke(IPC_CHANNELS.REPO_OPEN, folderPath),
-  getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_STATUS),
-  stageFile: (path) => ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE_FILE, path),
-  unstageFile: (path) => ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE_FILE, path),
-  stageAll: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE_ALL),
-  unstageAll: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE_ALL),
   getDiffContent: (request: DiffRequest) =>
     ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_DIFF_CONTENT, request),
-  discardFile: (path) => ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD_FILE, path),
-  deleteFile: (path) => ipcRenderer.invoke(IPC_CHANNELS.GIT_DELETE_FILE, path),
-  onStatusChanged: (callback) => {
-    const listener = (): void => {
-      callback()
-    }
-    ipcRenderer.on(IPC_CHANNELS.WATCHER_STATUS_CHANGED, listener)
-    return () => {
-      ipcRenderer.removeListener(IPC_CHANNELS.WATCHER_STATUS_CHANGED, listener)
-    }
-  },
   onShortcutOpenRepo: (callback) => {
     const listener = (): void => {
       callback()
@@ -41,15 +25,6 @@ const api: DiffyApi = {
     ipcRenderer.on(IPC_CHANNELS.SHORTCUT_OPEN_REPO, listener)
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.SHORTCUT_OPEN_REPO, listener)
-    }
-  },
-  onShortcutRefresh: (callback) => {
-    const listener = (): void => {
-      callback()
-    }
-    ipcRenderer.on(IPC_CHANNELS.SHORTCUT_REFRESH, listener)
-    return () => {
-      ipcRenderer.removeListener(IPC_CHANNELS.SHORTCUT_REFRESH, listener)
     }
   },
   onShortcutOpenSettings: (callback) => {
@@ -127,20 +102,7 @@ const api: DiffyApi = {
   getBranchDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH_DIFF),
   getUncommittedDiff: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_UNCOMMITTED_DIFF),
   fetchOrigin: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_FETCH_ORIGIN),
-  commit: (message: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, message),
   getBranch: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCH),
-  getCommitPanelVisible: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_COMMIT_PANEL_VISIBLE),
-  setCommitPanelVisible: (visible: boolean) =>
-    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_COMMIT_PANEL_VISIBLE, visible),
-  onToggleCommitPanel: (callback: () => void) => {
-    const listener = (): void => {
-      callback()
-    }
-    ipcRenderer.on(IPC_CHANNELS.SHORTCUT_TOGGLE_COMMIT_PANEL, listener)
-    return () => {
-      ipcRenderer.removeListener(IPC_CHANNELS.SHORTCUT_TOGGLE_COMMIT_PANEL, listener)
-    }
-  },
   onNarrativeTruncationWarning: (callback: (requestId: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, requestId: string): void => {
       callback(requestId)
