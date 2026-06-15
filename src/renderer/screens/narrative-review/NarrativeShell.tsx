@@ -15,6 +15,7 @@ import {
   clearReview,
   hydrateCachedReview,
   loadCachedNarrativeReview,
+  refreshNarrativeFiles,
   selectCachedReview,
   selectCachedReviewLoading,
   selectCurrentRequestId,
@@ -26,6 +27,7 @@ import {
   selectPrError,
   selectPrLoading,
   selectPrUrl,
+  selectRefreshingFiles,
   selectReview,
   selectSelectedNarrativeFile,
   selectStreamText,
@@ -70,6 +72,7 @@ export function NarrativeShell(): ReactElement {
   const aiProvider = useAppSelector(selectAiProvider)
   const hasApiKey = useAppSelector(selectHasApiKey)
   const cliInstalled = useAppSelector(selectCliInstalled)
+  const refreshingFiles = useAppSelector(selectRefreshingFiles)
   const [showRaw, setShowRaw] = useState(false)
 
   // Load settings on mount if not already loaded
@@ -213,6 +216,10 @@ export function NarrativeShell(): ReactElement {
     void dispatch(startNarrativeGeneration(generationRequest))
   }, [dispatch, generationRequest, generationUnavailableReason])
 
+  const handleRefresh = useCallback(() => {
+    void dispatch(refreshNarrativeFiles())
+  }, [dispatch])
+
   const handleBack = useCallback(() => {
     dispatch(clearPr())
   }, [dispatch])
@@ -323,6 +330,14 @@ export function NarrativeShell(): ReactElement {
           <div className={styles.setupActions}>
             <button className={styles.cancelBtn} onClick={handleBack} type="button">
               Back
+            </button>
+            <button
+              className={styles.cancelBtn}
+              onClick={handleRefresh}
+              disabled={refreshingFiles}
+              type="button"
+            >
+              {refreshingFiles ? 'Refreshing…' : 'Refresh'}
             </button>
             {cachedReview && !cachedReviewLoading ? (
               <>
